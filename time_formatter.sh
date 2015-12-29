@@ -1,5 +1,5 @@
 #!/bin/sh
-# drive_formatter.sh - usage: ./drive_formatter.sh <dir_name>
+# TimeFormatter.sh - usage: ./TimeFormatter.sh <dir_name>
 # find all text files under the directory dir_name and format the time fields
 # to convert them into the format of seconds only
 # auther: xiao yang <xiaoyang0117@gmail.com>
