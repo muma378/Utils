@@ -60,6 +60,20 @@ def validate(*args):
 				Popen([mkdir, arg], shell=True)
 				print("Directory %s is created." % arg)
 
+# actually, tables are dicts. However, generally speaking, the first column from 
+# the table composes the key and the rest part compose the value. therefore, 
+# the value is a list mostly.
+def write_table(table, filename, template=""):
+	if filename:
+		sorted_table = sorted(table.items())
+		with open(filename, 'w') as f:
+			if template:
+				for item in sorted_table:
+					f.write(template.formate(item))	# unicode?
+			else:
+				for item in sorted_table:
+					f.write(item[0]+'\t'+concatenate(item[1], '\t')+'\n')
+			
 
 # files matched pattern in the path rooted src are fetched and moved to the dst
 def fetch_files(src, dst='temp', pattern='.*\.8K'):
@@ -94,13 +108,13 @@ def extract_timetable(src='temp', dst_file='', pattern='.*\.8K', extract_all=Tru
 				if prog.match(filename):
 					timetable[filename] = cal_duration((os.stat(dirpath+separater+filename).st_size))
 	
-	if dst_file:
-		ordered_timelist = sorted(timetable.items())
-		with open(dst_file, 'w') as f:
-			for item in ordered_timelist:
-				f.write('{0[0]}\t{0[1]}\n'.format(item))
+	# if dst_file:
+	# 	ordered_timelist = sorted(timetable.items())
+	# 	with open(dst_file, 'w') as f:
+	# 		for item in ordered_timelist:
+	# 			f.write('{0[0]}\t{0[1]}\n'.format(item))
+	write_table(timetable, dst_file, '{0[0]}\t{0[1]}\n')
 	return timetable
-
 
 
 # transform files to dicts and appends them to the list
@@ -122,6 +136,7 @@ def translate(components, files_or_dicts):
 	return components
 
 
+# ABANDONED
 # merged_items is a list of list composed of 2 elements, 
 # which is a key and its attributes's list respectively
 # such as merged_items=[(key1, [attr1, attr2, ..., attrk]), ...]
@@ -144,30 +159,39 @@ def concatenate(nested_list, sep='\t'):
 			line += concatenate(field, sep)
 		else:
 			line += str(field).strip()+sep
-	return line
+	return line.strip()
 
 
 # match the audio and its subtitles (gcb)
 # subtitles are saved in the subtitle_dir, named as GXXX.gcp
 # contents in the GXXX.gcp are like: SXXXX\t abcdefg
 # respectively, files in the audio_dir named as T0109G0001S0001.8K
-def extract_subtitle(audio_dir='temp', subtitle_dir='gcp', audio_suffix='.8K', subt_suffix='.gcp', dst_file=''):
+def extract_subtitle(audio_dir='temp', subtitle_dir='gcp', audio_suffix='.8K', subtitle_suffix='.gcp', dst_file=''):
 	audio_files = os.listdir(audio_dir)
 	match_string = concatenate(audio_files, '\t')
 	# look up all files under the subtitle dir
 	for subtitle_name in os.listdir(subtitle_dir):
+		subtitle_dict = {}
+		clean_name = subtitle_name.replace(subtitle_suffix, '')	# remove suffixes
 		subtitle_abspath = os.path.join(subtitle_dir, subtitle_name)
-		clean_name = subtitle_name.replace(subt_suffix, '')	# remove suffixes
+		
 		with open(subtitle_abspath, 'r') as fd:
 			for line in fd:
 				fields = line.split('\t')	# field[0] as part-name, field[1] as subtitle
 				try:
-					import pdb;pdb.set_trace()
-					identifier = re.search('\t(?P.*'+clean_name+fields[0]+')'+audio_suffix, match_string).group(0)
-					fullname = identifier + clean_name + fields[0]
-					subtitle_dict = {fullname: fields[1]}
-				except KeyError, e:
-					raise e
+					# to find the corresponding fullname
+					# pattern = '\t?(?:.*G0001S0001)\.8K'
+					pattern = '\t?(?:.*'+clean_name+fields[0]+')\\'+audio_suffix
+					identifier = re.search(pattern, match_string).group(0)
+					subtitle_dict[identifier] = fields[1]
+				except AttributeError("Unable to match the pattern " + pattern), e:
+					print e
+	# if dst_file:
+	# 	ordered_timelist = sorted(timetable.items())
+	# 	with open(dst_file, 'w') as f:
+	# 		for item in ordered_timelist:
+	# 			f.write('{0[0]}\t{0[1]}\n'.format(item))
+	write_table(timetable, dst_file, '{0[0]}\t{0[1]}\n')
 	return subtitle_dict
 
 
@@ -202,29 +226,28 @@ def merge(*files_or_dicts, **kwargs):
 			except AttributeError, e:  # v is not a list
 				merge_head[k] = [v, cols]
 
-	# import pdb;pdb.set_trace()
 	# TODO: to extract a general output function
 	# output
 	if 'dst_file' in kwargs.keys():
 		dst_file = kwargs['dst_file']
-		merged_items = sorted(merge_head.items())
-		# try a sample
-		# try:
-		# 	import pdb;pdb.set_trace()
-		# 	attributes = merged_items[1]	
-		# 	if len(attributes) > 1:
-		# 		'\t'.join(attributes)
-		# except TypeError, e:
-		# 	to_stringify = []
-		# 	for i, a in enumerate(attributes):
-		# 		if type(a) is not str or unicode:
-		# 			to_stringify.append(i)
+		write_table(merge_head, dst_file)
+		# merged_items = sorted(merge_head.items())
+		# # try a sample
+		# # try:
+		# # 	import pdb;pdb.set_trace()
+		# # 	attributes = merged_items[1]	
+		# # 	if len(attributes) > 1:
+		# # 		'\t'.join(attributes)
+		# # except TypeError, e:
+		# # 	to_stringify = []
+		# # 	for i, a in enumerate(attributes):
+		# # 		if type(a) is not str or unicode:
+		# # 			to_stringify.append(i)
 
-		# merged_items = stringify(merged_items, to_stringify)
-		with open(dst_file, 'w') as f:
-			for item in merged_items:
-				# import pdb;pdb.set_trace()
-				f.write(item[0]+'\t'+concatenate(item[1], '\t')+'\n')
+		# # merged_items = stringify(merged_items, to_stringify)
+		# with open(dst_file, 'w') as f:
+		# 	for item in merged_items:
+		# 		f.write(item[0]+'\t'+concatenate(item[1], '\t')+'\n')
 
 	return merge_head
 	
