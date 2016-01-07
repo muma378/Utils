@@ -1,3 +1,4 @@
+#!/usr/local/bin/python
 # generate_8k_index.py - usage: 
 # it is for integrating all tools to generate the index file
 # the index file describes the audio names and their respective info such as duration and subtitle
@@ -10,10 +11,11 @@ import os
 import sys
 import re
 import time
-import collections
 import shutil
-from subprocess import Popen, call
+import argparse
+import subprocess
 from operator import itemgetter
+
 
 # following settings shall be understood and written correctly
 # audio settings
@@ -61,7 +63,7 @@ def validate(*args):
 			if reply is "n" or reply is "no":
 				exit_prompt("You choosed no, exit now ...")
 			else:
-				call(mkdir+' '+arg, shell=True)
+				subprocess.check_call(mkdir+' '+arg, shell=True)
 				# Popen([mkdir, arg], shell=True)
 				print("Directory %s is created." % arg)
 
@@ -101,7 +103,6 @@ def extract_timetable(src='temp', dst_file='', pattern='.*\.8K', extract_all=Tru
 	# get the length of the duration according to its size
 	cal_duration = lambda size: (size-AS['header'])*8.0/(AS['samplerate']*AS['bitrate']*AS['channel'])
 	
-	# import pdb;pdb.set_trace()
 	timetable = {}
 	if extract_all:
 		for dirpath, dirnames, filenames in os.walk(src):
@@ -114,11 +115,6 @@ def extract_timetable(src='temp', dst_file='', pattern='.*\.8K', extract_all=Tru
 				if prog.match(filename):
 					timetable[filename] = cal_duration((os.stat(dirpath+separater+filename).st_size))
 	
-	# if dst_file:
-	# 	ordered_timelist = sorted(timetable.items())
-	# 	with open(dst_file, 'w') as f:
-	# 		for item in ordered_timelist:
-	# 			f.write('{0[0]}\t{0[1]}\n'.format(item))
 	write_table(timetable, dst_file, '{0[0]}\t{0[1]}\n')
 	return timetable
 
@@ -170,7 +166,7 @@ def concatenate(nested_list, sep='\t'):
 
 # match the audio and its subtitles (gcb)
 # subtitles are saved in the subtitle_dir, named as GXXX.gcp
-# contents in the GXXX.gcp are like: SXXXX\t abcdefg
+# contents in the GXXX.gcp are like: SXXXX\t subtitle
 # respectively, files in the audio_dir named as T0109G0001S0001.8K
 def extract_subtitle(audio_dir='temp', subtitle_dir='gcp', audio_suffix='.8K', subtitle_suffix='.gcp', dst_file=''):
 	audio_files = os.listdir(audio_dir)
@@ -201,20 +197,15 @@ def extract_subtitle(audio_dir='temp', subtitle_dir='gcp', audio_suffix='.8K', s
 				# 	print "Unable to match the pattern " + pattern
 				except KeyError, e:
 					print "Warning: unable to find the file "+group_name+fields[0]+audio_suffix
-	# if dst_file:
-	# 	ordered_timelist = sorted(timetable.items())
-	# 	with open(dst_file, 'w') as f:
-	# 		for item in ordered_timelist:
-	# 			f.write('{0[0]}\t{0[1]}\n'.format(item))
 	write_table(subtitle_dict, dst_file, '{0[0]}\t{0[1]}\n')
 	return subtitle_dict
 
 
 # merge multi files and dicts with a same attribute
 # usually, the attribute is the filename at the first column
-# which columns to be generated is specified by the parameter 'settings'
-# such as settings = {'file1': (2, 4), 'dict1': (2, ), ...}
-# kwargs include dst_file='index.txt', settings=None
+# which columns to be generated is specified by the parameter 'filter_settings'
+# such as filter_settings = {'file1': (2, 4), 'dict1': (2, ), ...}
+# kwargs include dst_file='index.txt', filter_settings=None
 def merge(*files_or_dicts, **kwargs):
 	# all components to merge
 	merge_components = []
@@ -224,11 +215,31 @@ def merge(*files_or_dicts, **kwargs):
 	
 	# TODO: users can define own settings and are able to choose columns automatically 
 	# should not specify names by users
-	if 'settings' in kwargs.keys():	
-		filtered = lambda l, k: itemgetter(kwargs['settings'][k])(l)
-	else:
-		filtered = lambda l, k: itemgetter(FIELDS[k])(l)
-		# filtered = lambda l, k: l
+	# if 'filter_settings' in kwargs.keys():
+	# 	filtered = lambda l, k: itemgetter(*kwargs['filter_settings'][k])(l)
+	# else:
+	# 	filtered = lambda l, k: itemgetter(FIELDS[k])(l)
+	
+	def filtered(table, setting_name):
+		try:
+			settings = kwargs['filter_settings'][k]
+		except KeyError, e:
+			settings = FIELDS.get(k)
+
+		if settings is None:
+			return table
+		# multi continuous fields, such as slice(2, None)
+		elif type(settings) is slice:
+			return itemgetter(settings)(table)
+		# multi isolated fields, such as [2, 5, 6]
+		elif type(settings) is list or type(settings) is tuple:
+			return itemgetter(*settings)(table)
+		# only one field, such as -1
+		elif type(settings) is int:
+			return table[settings]
+		# incorrect settings
+		else:
+			exit_prompt("Error: Uninterpretable settings: " + str(settings))
 
 	# merge
 	# uses the first dict to lookup key names
@@ -246,35 +257,64 @@ def merge(*files_or_dicts, **kwargs):
 			except AttributeError, e:  # v is not a list
 				merge_head[k] = [v, cols]
 
-	# TODO: to extract a general output function
-	# output
 	if 'dst_file' in kwargs.keys():
 		dst_file = kwargs['dst_file']
 		write_table(merge_head, dst_file)
-		# merged_items = sorted(merge_head.items())
-		# # try a sample
-		# # try:
-		# # 	import pdb;pdb.set_trace()
-		# # 	attributes = merged_items[1]	
-		# # 	if len(attributes) > 1:
-		# # 		'\t'.join(attributes)
-		# # except TypeError, e:
-		# # 	to_stringify = []
-		# # 	for i, a in enumerate(attributes):
-		# # 		if type(a) is not str or unicode:
-		# # 			to_stringify.append(i)
-
-		# # merged_items = stringify(merged_items, to_stringify)
-		# with open(dst_file, 'w') as f:
-		# 	for item in merged_items:
-		# 		f.write(item[0]+'\t'+concatenate(item[1], '\t')+'\n')
 
 	return merge_head
+
+
+def call_function(util, args):
+	if util == "fetch":
+		fetch_files(args.src, args.dst, args.pattern)
+	elif util == "timetable":
+		extract_timetable(args.src, args.file, args.pattern, False)
+	elif util == "subtitle":
+		extract_subtitle(args.audio[0], args.text[0], args.audio[1], args.text[1], args.file)
+	elif util == "merge":
+		merge(args.files, dst_file=args.file)
+	# TODO: create a subcommand to execute all process
+	elif util == "all":	
+		pass
 	
+
+
+def main():
+	parser = argparse.ArgumentParser(prog=sys.argv[0], description='Integrated tools for generating available audio and index.')
+
+	# create the interface to sub-command
+	subparser = parser.add_subparsers(title='subprocesses', description='call an isolated process')
+	# fetch_files
+	fetch_parser = subparser.add_parser('fetch', help='copy or move files matched the parttern under src to dst')
+	fetch_parser.add_argument('-s', '--src', required=True, help='source directory to extract')
+	fetch_parser.add_argument('-d', '--dst', default='temp', help='destination directory to put')
+	fetch_parser.add_argument('-p', '--pattern', default='.*\.8K', help='regular expression to match')
+	# extract_timetable
+	timetable_parser = subparser.add_parser('timetable', help='extract audio to generate a table containing names and duration')
+	timetable_parser.add_argument('-s', '--src', required=True, help='source directory to scan audio')
+	timetable_parser.add_argument('-f', '--file', default='timetable.txt', help='destination file to save tables')
+	timetable_parser.add_argument('-p', '--pattern', default='.*\.8K', help='file to extract shall match the pattern')
+	# extract_subtitle
+	subtitle_parser = subparser.add_parser('subtitle', help='extract text from gcp to match the audio')
+	subtitle_parser.add_argument('-a', '--audio', required=True, nargs=2, default=('temp', '.8K'), metavar=('audio_dir', 'audio_suffix'),
+		help='audio directory and suffix')
+	subtitle_parser.add_argument('-t', '--text', required=True, nargs=2, default=('gcp', '.gcp'), metavar=('subtitle_dir', 'subtitle_suffix'),
+		help='subtitle directory and suffix')
+	subtitle_parser.add_argument('-f', '--file', default='subtitle.txt', help='destination file to save tables')
+	# merge
+	merge_parser = subparser.add_parser('merge', help='merge several index files')
+	merge_parser.add_argument('files', nargs='*', help='files to merge, noted the first columns must be the same')
+	merge_parser.add_argument('-f', '--file', default='index.txt', help='destination file to save data')
+
+	args = parser.parse_args(sys.argv[1:])
+	call_function(sys.argv[1], args)
+
+
 if __name__ == '__main__':
+	main()
 	# fetch_files(sys.argv[1])
 	# timetable = extract_timetable(dst_file='timetable.txt')
-	# subtitle_table = extract_subtitle(dst_file='subtitle.txt')
+	# subtitle_table = extract_subtitle(dst_file='subtitle_table.txt')
 	# timetable_file = r"C:\Users\xiaoyang\Desktop\ENV_8K\timetable.txt"
 	# index_file = r"C:\Users\xiaoyang\Desktop\ENV_8K\533index.txt"
-	merge('timetable.txt', 'subtitle.txt', dst_file='index.txt')
+	# merge(timetable, subtitle_table, dst_file='index.txt')
