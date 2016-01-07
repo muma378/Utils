@@ -67,6 +67,7 @@ def validate(*args):
 				# Popen([mkdir, arg], shell=True)
 				print("Directory %s is created." % arg)
 
+
 # actually, tables are dicts. However, generally speaking, the first column from 
 # the table composes the key and the rest part compose the value. therefore, 
 # the value is a list mostly.
@@ -80,7 +81,34 @@ def write_table(table, filename, template=""):
 			else:
 				for item in sorted_table:
 					f.write(item[0]+'\t'+concatenate(item[1], '\t')+'\n')
+
 			
+# files matched pattern in the path rooted src are fetched and moved to the dst
+def fetch_folders(src, dst='temp', refer='refer.txt', pattern=''):
+	separater = '\\' if os.name is 'nt' else '/'
+	validate(src, refer, dst)
+	with open(refer, 'r') as f:
+		candidates = f.read().split()
+	unextracted = { c:1 for c in candidates }
+
+	# unsupported right now
+	# prog = re.compile(pattern, re.UNICODE)
+
+	for dirpath, dirnames, filenames in os.walk(src):
+		for dirname in dirnames:
+			# TODO: a more reasonable way to decide whether move
+			if unextracted.get(dirname):
+				print("Extracting folder %s to %s" % (dirname, dst))
+				try:
+					shutil.copytree(dirpath+separater+dirname, dst+separater+dirname)
+					unextracted[dirname] = 0
+				except OSError, e:
+					print("File exists: %s" % dst+separater+dirname)
+	
+	for c in candidates:
+		if unextracted[c]:
+			print("Warning: unable to extract %s" % c)
+
 
 # files matched pattern in the path rooted src are fetched and moved to the dst
 def fetch_files(src, dst='temp', pattern='.*\.8K'):
@@ -169,7 +197,7 @@ def concatenate(nested_list, sep='\t'):
 # contents in the GXXX.gcp are like: SXXXX\t subtitle
 # respectively, files in the audio_dir named as T0109G0001S0001.8K
 def extract_subtitle(audio_dir='temp', subtitle_dir='gcp', audio_suffix='.8K', subtitle_suffix='.gcp', dst_file=''):
-	audio_files = os.listdir(audio_dir)
+	audio_files = os.listdir(audio_dir)	
 	# match_string = concatenate(audio_files, '\t')
 	# import pdb;pdb.set_trace()
 	slice_pattern = re.compile('.*(?P<slice>G.*S.*)\\'+audio_suffix)
@@ -263,10 +291,14 @@ def merge(*files_or_dicts, **kwargs):
 
 	return merge_head
 
-
+# TODO: add following functions
+# fetch_folders('first_edition', 'refer.txt', 'test')
 def call_function(util, args):
 	if util == "fetch":
-		fetch_files(args.src, args.dst, args.pattern)
+		if args.type == 'file':
+			fetch_files(args.src, args.dst, args.pattern)
+		else:
+			fetch_folders(args.src, args.dst, args.refer, args.pattern)
 	elif util == "timetable":
 		extract_timetable(args.src, args.file, args.pattern, False)
 	elif util == "subtitle":
@@ -286,9 +318,11 @@ def main():
 	subparser = parser.add_subparsers(title='subprocesses', description='call an isolated process')
 	# fetch_files
 	fetch_parser = subparser.add_parser('fetch', help='copy or move files matched the parttern under src to dst')
+	fetch_parser.add_argument('-t', '--type', default='file', choices=('file', 'folder'), help='move files or folders')
 	fetch_parser.add_argument('-s', '--src', required=True, help='source directory to extract')
 	fetch_parser.add_argument('-d', '--dst', default='temp', help='destination directory to put')
 	fetch_parser.add_argument('-p', '--pattern', default='.*\.8K', help='regular expression to match')
+	fetch_parser.add_argument('-r', '--refer', default='refer.txt', help='text to specify which folders to move, only needed when --type is folder')
 	# extract_timetable
 	timetable_parser = subparser.add_parser('timetable', help='extract audio to generate a table containing names and duration')
 	timetable_parser.add_argument('-s', '--src', required=True, help='source directory to scan audio')
