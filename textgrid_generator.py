@@ -101,15 +101,22 @@ def prefill_items(slices):
 		previous_xmax = aslice['xmax']
 	return filled_slices
 
+def output_textgrids(root_dir, items, prefill=True):
+	mkdir = 'MD' if os.name is 'nt' else 'mkdir'
+	sep = '\\' if os.name is 'nt' else '/'
+	if not os.path.exists(root_dir):
+		subprocess.check_call(mkdir+' '+root_dir, shell=True)
+	# ordered = collections.OrderedDict(sorted(items.items()))
+	for filename, slices in items.items():
+		dst = root_dir + sep + filename + '.textgrid'
+		with open(dst, "w") as f:
+			if prefill:
+				slices =prefill_items(slices)
+			f.write(generate_output(slices))
+
 
 if __name__ == '__main__':
 	items = {}
 	parse_file(sys.argv[1], items)
 	directory_name = sys.argv[1].split('.')[0]
-	subprocess.call('mkdir '+directory_name, shell=True)
-	# ordered = collections.OrderedDict(sorted(items.items()))
-	for filename, slices in items.items():
-		dst = directory_name + '/' + filename + '.textgrid'
-		with open(dst, "w") as f:
-			slices =prefill_items(slices)
-			f.write(generate_output(slices))
+	output_textgrids(directory_name, items)
