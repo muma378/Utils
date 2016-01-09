@@ -24,5 +24,7 @@ UTILS
 - **generate\_8k_index.py**
     - python generate\_8k_index.py args
     - Integrating all tools used in the process of building index file. TODO
-
+- **dbf2xlsx.py**
+    - python dbf2xlsx.py root_dir config.json
+    - reads dbf files under root_dir, after processing as the config.json requires, translate them into xlsx
 
