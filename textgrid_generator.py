@@ -38,6 +38,9 @@ TEMPLATE_INTERVALS = """			intervals [{interval_index}]:
 			text = "{text}"
 """
 
+URL_PATTERN = '.*/(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.wav'
+# URL_PATTERN = '^(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.mp3'
+
 #sort and organize
 def parse_file(src, items):
 	with open(src, "r") as f:
@@ -56,11 +59,16 @@ def parse_line(line, items):
 	if columns[1] == '1':
 		url = unicode(columns[0], 'utf-8')
 		try:
-			groups = re.search('.*/(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.wav', url, re.UNICODE).groupdict()
-		except AttributeError, e:
-			print "Can not parse the url: " + url
-		else:
+			groups = re.search(URL_PATTERN, url, re.UNICODE).groupdict()
 			info = {'slice': int(groups['slice']), 'xmin': str(float(groups['start'])+float(columns[2])), 'xmax': str(float(groups['start'])+float(columns[3])), 'text': columns[4]}
+		except (AttributeError, ValueError) as e:
+			if columns[2] == 'None':
+				columns[2] = 0
+				info = {'slice': int(groups['slice']), 'xmin': str(float(groups['start'])+float(columns[2])), 'xmax': str(float(groups['start'])+float(columns[3])), 'text': columns[4]}
+			else:
+				print "Unable to parse the url: " + url
+
+		else:
 			try:
 				items[groups['name']].append(info)
 			except KeyError, e:

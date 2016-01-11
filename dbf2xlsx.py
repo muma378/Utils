@@ -22,11 +22,44 @@ FIELDS_TEXT = {'W19020104': u'土压 下', 'W19020102': u'土压 左', 'W1902010
 SRC_SUFFIX = '.dbf'
 DST_SUFFIX = '.xlsx'
 
-NAME_PATTERN = '.*/database/process/p(?P<ring_no>\d+)\.dbf'
+# NAME_PATTERN = '.*/database/process/p(?P<ring_no>\d+)\.dbf'
+NAME_PATTERN = '.*\\\\database\\\\process\\\\p(?P<ring_no>\d+)\.dbf'
 RING_TITLE = '环号'
 JSON_KEYS = ["check", "average", "text"]
 OA_KEY = 'ordered_average'
 OT_KEY = 'ordered_text'
+
+LOGFILE = 'dbf2xlsx.log'
+LOGFP = ''
+CACHEFILE = 'cache.csv'
+CACHEFP = ''
+
+def setup(root_dir):
+	global LOGFP, CACHEFP
+	LOGFP = open(os.path.join(root_dir, LOGFILE), 'w')
+	CACHEFP = open(os.path.join(root_dir, CACHEFILE), 'a+')
+
+def teardown(root_dir):
+	LOGFP.close()
+	CACHEFP.close()
+
+
+def loginfo(msg):
+	print(msg+', saved to '+LOGFILE)
+	LOGFP.write(msg)
+
+# saves the average value to a csv file to avoid calculating from the start
+def cache(fullpath, ring_no, record):
+	items = [fullpath, ring_no]+record
+	line = ''
+	for item in items:
+		line += str(item).strip() + ','
+	CACHEFP.write(line+'\n')
+
+
+def loads():
+	pass
+
 
 class InvalidLineException(Exception):
 	pass
@@ -71,10 +104,15 @@ def readfiles(root_dir, settings_file):
 			fullpath = os.path.join(dirpath, filename)
 			r = rn_parser.match(fullpath)
 			if r:
-				fields_avg = process(fullpath, settings)
+				try:
+					fields_avg = process(fullpath, settings)
+				except ValueError as e:
+					loginfo('Error: unable to process %s' % fullpath)
+					break
 				# create one sheet for all files in the same folder
 				try:
 					ring_no = r.group('ring_no')
+					cache(fullpath, ring_no, fields_avg)
 					avg_xlsx[dirpath][ring_no] = fields_avg
 				except KeyError as e:	# dirpath has not been traversed before
 					avg_xlsx[dirpath] = {ring_no: fields_avg}
@@ -82,6 +120,7 @@ def readfiles(root_dir, settings_file):
 	print('Converting finnished')
 	gen_avgxlsx(avg_xlsx, root_dir, settings)
 	return items
+
 
 
 # reads dbf and removes unqualified data
@@ -140,8 +179,9 @@ def gen_xlsx(xlsx_list, filepath, settings):
 
 # name as AVG_rootdir.xlsx
 def gen_avgxlsx(avg_xlsx, root_dir, settings):
-	avgxlsx_name = 'AVG_' + root_dir + DST_SUFFIX
-	print('Saving average values for %s to %s now ...' % (root_dir, avgxlsx_name))
+	avgxlsx_name = 'AVG' + DST_SUFFIX
+	avgxlsx_path = os.path.join(root_dir, avgxlsx_name)
+	print('Saving average values for %s to %s now ...' % (root_dir, avgxlsx_path))
 	wb = px.Workbook(write_only=True)
 	for path, data in avg_xlsx.items():
 		ws = wb.create_sheet()
@@ -151,7 +191,10 @@ def gen_avgxlsx(avg_xlsx, root_dir, settings):
 		for d in ordered_data:
 			ws.append(d)
 
-	wb.save(avgxlsx_name)
+	wb.save(avgxlsx_path)
 
 if __name__ == '__main__':
-	readfiles(sys.argv[1], sys.argv[2])
+	root_dir, config = sys.argv[1], sys.argv[2]
+	setup(root_dir)
+	readfiles(root_dir, config)
+	teardown(root_dir)

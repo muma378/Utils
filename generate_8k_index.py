@@ -297,7 +297,7 @@ def call_function(util, args):
 	if util == "fetch":
 		if args.type == 'file':
 			fetch_files(args.src, args.dst, args.pattern)
-		else:
+		else:	# args.type == 'folder'
 			fetch_folders(args.src, args.dst, args.refer, args.pattern)
 	elif util == "timetable":
 		extract_timetable(args.src, args.file, args.pattern, False)
