@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 import os
 import re
 import sys
@@ -15,12 +16,11 @@ LONGEST_MUTE = 30
 SUFFIX = '.textgrid'
 
 def readfiles(root_dir):
-	sep = '\\' if os.name is 'nt' else '/'
 	items = {}
 	for dirpath, dirnames, filenames in os.walk(root_dir):
 		for filename in filenames:
 			if filename.endswith(SUFFIX):
-				items[filename.replace(SUFFIX, '')] = parse(dirpath+sep+filename)	# already sorted
+				items[filename.replace(SUFFIX, '')] = parse(dirpath+os.sep+filename)	# already sorted
 	return items
 
 # reverse convert lines in the textgrid into a dict with keys described below
