@@ -112,14 +112,13 @@ def fetch_folders(src, dst='temp', refer='refer.txt', pattern=''):
 
 # files matched pattern in the path rooted src are fetched and moved to the dst
 def fetch_files(src, dst='temp', pattern='.*\.8K'):
-	separater = '\\' if os.name is 'nt' else '/'
 	validate(src, dst)
 	prog = re.compile(pattern, re.UNICODE)
 	for dirpath, dirnames, filenames in os.walk(src):
 		for filename in filenames:
 			if prog.match(filename):
 				# TODO:move or copy?
-				shutil.copy(dirpath+separater+filename, dst)
+				shutil.copy(os.path.join(dirpath, filename), dst)
 				print("Extracted file %s under %s" % (filename, dirpath))
 
 

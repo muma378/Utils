@@ -9,6 +9,7 @@
 import os
 import sys
 import re
+import shutil
 import openpyxl as px
 from dbfread import DBF
 
@@ -22,31 +23,35 @@ FIELDS_TEXT = {'W19020104': u'土压 下', 'W19020102': u'土压 左', 'W1902010
 SRC_SUFFIX = '.dbf'
 DST_SUFFIX = '.xlsx'
 
-# NAME_PATTERN = '.*/database/process/p(?P<ring_no>\d+)\.dbf'
-NAME_PATTERN = '.*\\\\database\\\\process\\\\p(?P<ring_no>\d+)\.dbf'
+NAME_PATTERN = '.*/database/process/p(?P<ring_no>\d+)\.dbf'
+# NAME_PATTERN = '.*\\\\database\\\\process\\\\p(?P<ring_no>\d+)\.dbf'
 RING_TITLE = '环号'
-JSON_KEYS = ["check", "average", "text"]
+JSON_KEYS = ["check", "average", "text", "append"]
 OA_KEY = 'ordered_average'
 OT_KEY = 'ordered_text'
+OAP_KEY = 'ordered_append'
 
 LOGFILE = 'dbf2xlsx.log'
-LOGFP = ''
+LOGFP = None
 CACHEFILE = 'cache.csv'
-CACHEFP = ''
+CACHEFP = None
 
 def setup(root_dir):
 	global LOGFP, CACHEFP
-	LOGFP = open(os.path.join(root_dir, LOGFILE), 'w')
-	CACHEFP = open(os.path.join(root_dir, CACHEFILE), 'a+')
+	LOGFP = open(os.path.join(root_dir, LOGFILE), 'a')
+	cache_path = os.path.join(root_dir, CACHEFILE)
+	# if already exists, created a fake one to read
+	if os.path.exists(cache_path):
+		shutil.copy(cache_path, root_dir+os.sep+'~'+CACHEFILE)
+	CACHEFP = open(cache_path, 'a')
 
 def teardown(root_dir):
 	LOGFP.close()
 	CACHEFP.close()
 
-
 def loginfo(msg):
-	print(msg+', saved to '+LOGFILE)
-	LOGFP.write(msg)
+	print(msg+', saved to '+LOGFILE+', please check it manually')
+	LOGFP.write(msg+'\n')
 
 # saves the average value to a csv file to avoid calculating from the start
 def cache(fullpath, ring_no, record):
@@ -57,9 +62,18 @@ def cache(fullpath, ring_no, record):
 	CACHEFP.write(line+'\n')
 
 
-def loads():
-	pass
-
+def loads(root_dir):
+	cached_dict = {}
+	avg_xlsx = {}
+	fake_cache = root_dir+os.sep+'~'+CACHEFILE
+	# fake cache file
+	if os.path.exists(fake_cache):
+		with open(fake_cache, 'r') as f:
+			for line in f:
+				l = line.split(',')
+				cached_dict[l[0]] = True
+				avg_xlsx.setdefault(os.path.dirname(l[0]), {}).setdefault(l[1], l[2:])
+	return cached_dict, avg_xlsx
 
 class InvalidLineException(Exception):
 	pass
@@ -76,6 +90,7 @@ def loadsettings(settings_file):
 			settings[OA_KEY] = sorted(settings["average"].values())
 			# ordered text according to attribute above
 			settings[OT_KEY] = [ settings["text"][k] for k in settings[OA_KEY] ]
+			settings[OAP_KEY] = sorted(settings["append"].values())
 	except Exception as e:
 		print e
 		print("Error: unable to parse the setting file, please check %s " % settings_file)
@@ -93,7 +108,7 @@ def loadsettings(settings_file):
 # }
 def readfiles(root_dir, settings_file):
 	items = {}
-	avg_xlsx = {}
+	cached, avg_xlsx = loads(root_dir)
 	rn_parser = re.compile(NAME_PATTERN)
 
 	print("Program started")
@@ -102,20 +117,20 @@ def readfiles(root_dir, settings_file):
 		for filename in filenames:
 			# only need to process the data under dir 'process'
 			fullpath = os.path.join(dirpath, filename)
-			r = rn_parser.match(fullpath)
-			if r:
-				try:
-					fields_avg = process(fullpath, settings)
-				except ValueError as e:
-					loginfo('Error: unable to process %s' % fullpath)
-					break
-				# create one sheet for all files in the same folder
-				try:
+			if cached.get(fullpath, False):
+				print('%s was processed before, ignored' % fullpath)
+			else:
+				r = rn_parser.match(fullpath)
+				if r:
+					try:
+						fields_avg = process(fullpath, settings)
+					except ValueError as e:
+						loginfo('Error: unable to process %s' % fullpath)
+						break
+					# create one sheet for all files in the same folder
 					ring_no = r.group('ring_no')
 					cache(fullpath, ring_no, fields_avg)
-					avg_xlsx[dirpath][ring_no] = fields_avg
-				except KeyError as e:	# dirpath has not been traversed before
-					avg_xlsx[dirpath] = {ring_no: fields_avg}
+					avg_xlsx.setdefault(dirpath, {}).setdefault(ring_no, fields_avg)
 
 	print('Converting finnished')
 	gen_avgxlsx(avg_xlsx, root_dir, settings)
@@ -131,7 +146,6 @@ def process(filepath, settings):
 	xlsx_list = []
 	# row index and data
 	print("Filtering data now")
-	# import pdb;pdb.set_trace()
 	for ri, record in enumerate(t.records):
 		try:
 			for attr in settings['check'].values():
@@ -149,8 +163,12 @@ def process(filepath, settings):
 
 	n_del, n_save = len(t.deleted), len(xlsx_list)
 	print('Processing finished, %d in total, %d rows are removed, %d rows are saved.' % (n_del+n_save, n_del, n_save))
-	fields_avg = [ v / n_save for v in fields_avg ]
 	gen_xlsx(xlsx_list, filepath, settings)
+	
+	fields_avg = [ v / n_save for v in fields_avg ]
+	# besides, append the last values for several columns
+	for attr in settings[OAP_KEY]:
+		fields_avg.append(record[attr])
 	return fields_avg
 
 
@@ -185,8 +203,8 @@ def gen_avgxlsx(avg_xlsx, root_dir, settings):
 	wb = px.Workbook(write_only=True)
 	for path, data in avg_xlsx.items():
 		ws = wb.create_sheet()
-		ws.title = path.replace(os.sep, '-')
-		ws.append([RING_TITLE] + settings[OT_KEY])
+		ws.title = path.replace(os.sep, '-').decode('utf-8')[-30:-17]
+		ws.append([RING_TITLE] + settings[OT_KEY] + settings[OAP_KEY])
 		ordered_data = [ [k]+v for k,v in sorted(data.items(), key=lambda x: x[0])]
 		for d in ordered_data:
 			ws.append(d)
