@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+# dbf2xlsx.py - usage: python dbf2xlsx.py root_dir config.json
+# reads dbf files under root_dir and the config.json, 
+# removes data if the value of the fields which in the 'check' is 0,
+# calculates the average values of fields which in the 'average' and generates 
+# an excel contain all files
+# author: xiaoyang <xiaoyang0117@gmail.com>
+# date: 2016.01.10
 import os
 import sys
 import re
@@ -133,7 +140,6 @@ def gen_xlsx(xlsx_list, filepath, settings):
 
 # name as AVG_rootdir.xlsx
 def gen_avgxlsx(avg_xlsx, root_dir, settings):
-	import pdb;pdb.set_trace()
 	avgxlsx_name = 'AVG_' + root_dir + DST_SUFFIX
 	print('Saving average values for %s to %s now ...' % (root_dir, avgxlsx_name))
 	wb = px.Workbook(write_only=True)

@@ -1,8 +1,8 @@
 import os
 import sys
 
-BOX_TEMPLATE = "{0},{1}\t{2},{3}\t-1,-1"
-POINT_TEMPLATE = "-1,-1\t-1,-1\t{0},{1}"
+BOX_TEMPLATE = "{0},{1}\t{2},{3}\t-1,-1\n"
+POINT_TEMPLATE = "-1,-1\t-1,-1\t{0},{1}\n"
 ROOT_DIR = 'Position/'
 
 def readjson(filename):
