@@ -7,7 +7,7 @@ from struct import pack
 from random import randrange
 
 MAXVOLUME = 20
-
+MEDIA = '.wav'
 
 def waveproc(src_file, dst_file):
 	wr = wave.open(src_file, 'rb')
@@ -49,23 +49,29 @@ def noise_generator(params, duration, num):
 		8: 'q',
 	}
 
+	packendian_map = {
+		'little': '<',
+		'big':'>',
+	}
+
 	_type = packtype_map[sampwidth]
 	for i in xrange(num):
 		noise = [randrange(MAXVOLUME) for i in xrange(sampling_size)]
-		yield pack(_type*sampling_size, *noise)
+		yield pack(packendian_map[sys.byteorder]+_type*sampling_size, *noise)
 
 
 def readfiles(src_dir, dst_dir):
 	for dirpath, dirnames, filenames in os.walk(src_dir):
 		for filename in filenames:
-			try:
-				src_file = os.path.join(dirpath, filename)
-				dst_file = os.path.join(dst_dir, src_file[len(src_dir):])	# should not use replace
-				waveproc(src_file, dst_file)
-			except Exception as e:
-				print e
-				print("Unable to process %s" % src_file)
-	
+			if filename.endswith(MEDIA):
+				try:
+					src_file = os.path.join(dirpath, filename)
+					dst_file = os.path.join(dst_dir, src_file[len(src_dir):])	# should not use replace
+					waveproc(src_file, dst_file)
+				except Exception as e:
+					print e
+					print("Unable to process %s" % src_file)
+		
 
 def main():
 	src = sys.argv[1]
