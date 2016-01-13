@@ -1,4 +1,4 @@
-# add_noise.py - usage: python add_noise.py filename
+# add_noise.py - usage: python add_noise.py src_dir dst_dir
 # add a random (0~20) noise of 0.1s at the begining and ending of the original audio
 import os
 import sys
@@ -9,8 +9,8 @@ from random import randrange
 MAXVOLUME = 20
 
 
-def waveproc(filename, dst_dir):
-	wr = wave.open(filename, 'rb')
+def waveproc(src_file, dst_file):
+	wr = wave.open(src_file, 'rb')
 	# nchannels, sampwidth(bytes), framerate, nframes, comptype, compname
 	header = list(wr.getparams())
 	content = wr.readframes(header[3])
@@ -19,12 +19,12 @@ def waveproc(filename, dst_dir):
 	header[3] += next(noise_gen)
 	wr.close()
 
+	dst_dir = os.path.dirname(dst_file)
 	if not os.path.exists(dst_dir):
 		os.makedirs(dst_dir)
 
-	import pdb;pdb.set_trace()
 	# write frames
-	ww = wave.open(os.path.join(dst_dir, filename), 'wb')
+	ww = wave.open(dst_file, 'wb')
 	ww.setparams(header)
 	ww.writeframesraw(next(noise_gen))
 	ww.writeframesraw(content)
@@ -54,13 +54,14 @@ def noise_generator(params, duration, num):
 		noise = [randrange(MAXVOLUME) for i in xrange(sampling_size)]
 		yield pack(_type*sampling_size, *noise)
 
+
 def readfiles(src_dir, dst_dir):
-	for dirpath, dirnames, filenames in os.walk(src):
+	for dirpath, dirnames, filenames in os.walk(src_dir):
 		for filename in filenames:
 			try:
-				import pdb;pdb.set_trace()
-				child_dir = dirpath.replace(src_dir, '')
-				waveproc(os.path.join(child_dir, filename), dst_dir)
+				src_file = os.path.join(dirpath, filename)
+				dst_file = os.path.join(dst_dir, src_file[len(src_dir):])	# should not use replace
+				waveproc(src_file, dst_file)
 			except Exception as e:
 				print e
 				print("Unable to process %s" % src_file)
@@ -69,7 +70,8 @@ def readfiles(src_dir, dst_dir):
 def main():
 	src = sys.argv[1]
 	dst = sys.argv[2]
-	length = 0.1
+	readfiles(src, dst)
+
 
 if __name__ == '__main__':
 	main()
