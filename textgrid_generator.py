@@ -67,12 +67,10 @@ def parse_line(line, items):
 				info = {'slice': int(groups['slice']), 'xmin': str(float(groups['start'])+float(columns[2])), 'xmax': str(float(groups['start'])+float(columns[3])), 'text': columns[4]}
 			else:
 				print "Unable to parse the url: " + url
+				return
 
-		else:
-			try:
-				items[groups['name']].append(info)
-			except KeyError, e:
-				items[groups['name']] = [info]
+		item.setdefault(groups['name'], []).append(info)
+
 
 def generate_interval(aslice, interval_index, text=''):
 	return TEMPLATE_INTERVALS.format(interval_index=interval_index, local_xmin=aslice['xmin'], local_xmax=aslice['xmax'], text=text)
@@ -111,12 +109,11 @@ def prefill_items(slices):
 
 def output_textgrids(root_dir, items, prefill=True):
 	mkdir = 'MD' if os.name is 'nt' else 'mkdir'
-	sep = '\\' if os.name is 'nt' else '/'
 	if not os.path.exists(root_dir):
 		subprocess.check_call(mkdir+' '+root_dir, shell=True)
 	# ordered = collections.OrderedDict(sorted(items.items()))
 	for filename, slices in items.items():
-		dst = root_dir + sep + filename + '.textgrid'
+		dst = root_dir + os.sep + filename + '.textgrid'
 		with open(dst, "w") as f:
 			if prefill:
 				slices =prefill_items(slices)

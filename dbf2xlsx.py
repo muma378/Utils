@@ -23,8 +23,8 @@ FIELDS_TEXT = {'W19020104': u'土压 下', 'W19020102': u'土压 左', 'W1902010
 SRC_SUFFIX = '.dbf'
 DST_SUFFIX = '.xlsx'
 
-NAME_PATTERN = '.*/database/process/p(?P<ring_no>\d+)\.dbf'
-# NAME_PATTERN = '.*\\\\database\\\\process\\\\p(?P<ring_no>\d+)\.dbf'
+# NAME_PATTERN = '.*/database/process/p(?P<ring_no>\d+)\.dbf'
+NAME_PATTERN = '.*\\\\database\\\\process\\\\p(?P<ring_no>\d+)\.dbf'
 RING_TITLE = '环号'
 JSON_KEYS = ["check", "average", "text", "append"]
 OA_KEY = 'ordered_average'
@@ -50,7 +50,7 @@ def teardown(root_dir):
 	CACHEFP.close()
 
 def loginfo(msg):
-	print(msg+', saved to '+LOGFILE+', please check it manually')
+	print(msg)
 	LOGFP.write(msg+'\n')
 
 # saves the average value to a csv file to avoid calculating from the start
@@ -63,6 +63,7 @@ def cache(fullpath, ring_no, record):
 
 
 def loads(root_dir):
+	print("Loading cache ...")
 	cached_dict = {}
 	avg_xlsx = {}
 	fake_cache = root_dir+os.sep+'~'+CACHEFILE
@@ -80,6 +81,7 @@ class InvalidLineException(Exception):
 		
 
 def loadsettings(settings_file):
+	print("Loading settings ... ")
 	try:
 		with open(settings_file) as f:
 			settings = eval(f.read())
@@ -92,7 +94,7 @@ def loadsettings(settings_file):
 			settings[OT_KEY] = [ settings["text"][k] for k in settings[OA_KEY] ]
 			settings[OAP_KEY] = sorted(settings["append"].values())
 	except Exception as e:
-		print e
+		print e.msg
 		print("Error: unable to parse the setting file, please check %s " % settings_file)
 		sys.exit(0)
 	return settings
@@ -111,7 +113,6 @@ def readfiles(root_dir, settings_file):
 	cached, avg_xlsx = loads(root_dir)
 	rn_parser = re.compile(NAME_PATTERN)
 
-	print("Program started")
 	settings = loadsettings(settings_file)
 	for dirpath, dirnames, filenames in os.walk(root_dir):
 		for filename in filenames:
@@ -126,7 +127,7 @@ def readfiles(root_dir, settings_file):
 						fields_avg = process(fullpath, settings)
 					except ValueError as e:
 						loginfo('Error: unable to process %s' % fullpath)
-						break
+						continue
 					# create one sheet for all files in the same folder
 					ring_no = r.group('ring_no')
 					cache(fullpath, ring_no, fields_avg)
@@ -203,7 +204,10 @@ def gen_avgxlsx(avg_xlsx, root_dir, settings):
 	wb = px.Workbook(write_only=True)
 	for path, data in avg_xlsx.items():
 		ws = wb.create_sheet()
-		ws.title = path.replace(os.sep, '-').decode('utf-8')[-30:-17]
+		try:
+			ws.title = path.replace(os.sep, '-').decode('utf-8')[-47:-17]
+		except UnicodeDecodeError as e:
+			ws.title =  path.replace(os.sep, '-').decode('gb2312')[-47:-17]
 		ws.append([RING_TITLE] + settings[OT_KEY] + settings[OAP_KEY])
 		ordered_data = [ [k]+v for k,v in sorted(data.items(), key=lambda x: x[0])]
 		for d in ordered_data:
@@ -214,5 +218,6 @@ def gen_avgxlsx(avg_xlsx, root_dir, settings):
 if __name__ == '__main__':
 	root_dir, config = sys.argv[1], sys.argv[2]
 	setup(root_dir)
+	loginfo("===========================Program Started===========================")
 	readfiles(root_dir, config)
 	teardown(root_dir)
