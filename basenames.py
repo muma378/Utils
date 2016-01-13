@@ -1,5 +1,12 @@
+# basenames.py - usage: python basenames.py root_dir
+# to extract basenames in the text file which under the root dir
+# author: xiaoyang <xiaoyang0117@gmail.com>
+# date: 2015.01.13
 import os
 import sys
+import re
+
+URL_PATTERN = '.*/(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.(?P<format>.+)$'
 
 def parse_line(line, names):
 	columns = line.split('\t')
@@ -16,18 +23,18 @@ def parse_line(line, names):
 			else:
 				print "Unable to parse the url: " + url
 				return
-		names.append(groups['name'])
+		names.append(groups['name']+'.'+groups['format']+'\n')
 
 def readfiles(root_dir):
-	names = []
 	for file in os.listdir(root_dir):
 		if file.endswith('.txt'):
+			names = []
 			with open(file, 'r') as f:
 				for line in f:
 					parse_line(line, names)
 			with open(file.replace('.txt', 'names.txt'), 'w') as f:
 				for name in names:
-					f.write(name)
+					f.write(name.encode('utf-8'))
 
 if __name__ == '__main__':
-	readfiles(sys.argv[0])
+	readfiles(sys.argv[1])
