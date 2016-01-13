@@ -94,7 +94,6 @@ def loadsettings(settings_file):
 			settings[OT_KEY] = [ settings["text"][k] for k in settings[OA_KEY] ]
 			settings[OAP_KEY] = sorted(settings["append"].values())
 	except Exception as e:
-		print e.msg
 		print("Error: unable to parse the setting file, please check %s " % settings_file)
 		sys.exit(0)
 	return settings
@@ -153,7 +152,7 @@ def process(filepath, settings):
 				if record[attr] == 0:
 					t.deleted.append(record)
 					raise InvalidLineException('Warning: line %d in %s is invalid, has been removed ' % (ri, filepath))			
-			for fi, avg_attr in enumerate(settings[OA_KEY].values()):
+			for fi, avg_attr in enumerate(settings[OA_KEY]):
 				fields_avg.setdefault(fi, []).append(record[avg_attr])
 
 			xlsx_list.append(record)
