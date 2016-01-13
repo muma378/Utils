@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# TextGridGenerator.py - usage: python TextGridGenerator.py configure.txt
+# textgrid_generator.py - usage: python textgrid_generator.py configure.txt
 # to parse the configure.txt and translate it into textgrid files
 # author: xiao yang <xiaoyang0117@gmail.com>
 # date: 2015.12.28

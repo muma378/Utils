@@ -23,7 +23,9 @@ def parse_line(line, names):
 			else:
 				print "Unable to parse the url: " + url
 				return
-		names.append(groups['name']+'.'+groups['format']+'\n')
+		# names.append(groups['name']+'.'+groups['format']+'\n')
+		names.append(groups['name']+'.wav\n')	# all original audio are waves
+
 
 def readfiles(root_dir):
 	for file in os.listdir(root_dir):
