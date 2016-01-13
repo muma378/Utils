@@ -153,11 +153,9 @@ def process(filepath, settings):
 				if record[attr] == 0:
 					t.deleted.append(record)
 					raise InvalidLineException('Warning: line %d in %s is invalid, has been removed ' % (ri, filepath))			
-			for fi, avg_attr in enumerate(settings['average'].values()):
-				try:
-					fields_avg[fi] += record[avg_attr] 
-				except IndexError:	#first time
-					fields_avg.append(record[avg_attr])
+			for fi, avg_attr in enumerate(settings[OA_KEY].values()):
+				fields_avg.setdefault(fi, []).append(record[avg_attr])
+
 			xlsx_list.append(record)
 		except InvalidLineException as e:
 			pass
