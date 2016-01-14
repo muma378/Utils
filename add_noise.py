@@ -9,8 +9,13 @@ from random import randrange, gauss
 
 MAXVOLUME = 20
 MEDIA = '.wav'
+# the length of orignial audio to be sampled
 SAMPLE_LEN = 0.3
-NOISE_LEN = 0.1
+# the length of noise to be added
+NOISE_LEN = 0.1 # to be a variable
+
+THRESHOLD = 30
+
 
 PACKTYPE_MAP = { 
 	1: 'c',
@@ -25,16 +30,20 @@ PACKENDIAN_MAP = {
 }
 
 
-def waveproc(src_file, dst_file):
+def waveproc(header, content):
+	samples = extract_samples(header, SAMPLE_LEN, content)
+	noise_gen = noise_generator(header, NOISE_LEN, 2, samples)
+	header[3] += next(noise_gen)
+	return noise_gen
+
+def waveio(src_file, dst_file):
 	wr = wave.open(src_file, 'rb')
 	# nchannels, sampwidth(bytes), framerate, nframes, comptype, compname
 	header = list(wr.getparams())
 	content = wr.readframes(header[3])
-	
-	samples = extract_samples(header, SAMPLE_LEN, content)
-	noise_gen = noise_generator(header, NOISE_LEN, 2, samples)
-	header[3] += next(noise_gen)
 	wr.close()
+
+	noise_gen = waveproc(header, content)	
 
 	dst_dir = os.path.dirname(dst_file)
 	if not os.path.exists(dst_dir):
@@ -48,6 +57,13 @@ def waveproc(src_file, dst_file):
 	ww.writeframesraw(next(noise_gen))
 	ww.close()
 
+def threshold_wav(samples):
+	 for sample in samples:
+	 	if gauss_params(sample)[1] < THRESHOLD:
+	 		yield True
+	 	else:
+	 		yield False
+	 	
 
 # extracts a piece of sample respectively at the begining and ending
 def extract_samples(params, duration, content):
@@ -65,7 +81,6 @@ def unpack_samples(fmt, content, positions):
 		samples.append(unpack(fmt, content[start:end]))
 	return samples
 
-
 # duration counted as second
 # num is how many pieces of noise to generate
 def noise_generator(params, duration, num, samples):
@@ -75,15 +90,13 @@ def noise_generator(params, duration, num, samples):
 	# the size of noises generated in total
 	yield num * sampling_size * sampwidth
 
-	# identifiers for different size in lib struct
-
 	_endian = PACKENDIAN_MAP[sys.byteorder]
+	# identifiers for different size in lib struct
 	_type = PACKTYPE_MAP[sampwidth]
 	for i in xrange(num):
 		mu, sigma = gauss_params(samples[i])
 		# noise = [randrange(MAXVOLUME) for i in xrange(sampling_size)]
 		noise = [gauss(mu, sigma) for i in xrange(sampling_size)]
-		import pdb;pdb.set_trace()		
 		yield pack(_endian+_type*sampling_size, *noise)
 
 def mean(l):
@@ -110,7 +123,7 @@ def readfiles(src_dir, dst_dir):
 				try:
 					src_file = os.path.join(dirpath, filename)
 					dst_file = os.path.join(dst_dir, src_file[len(src_dir):])	# should not use replace
-					waveproc(src_file, dst_file)
+					waveio(src_file, dst_file)
 				except Exception as e:
 					print e
 					print("Unable to process %s" % src_file)

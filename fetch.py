@@ -11,7 +11,7 @@ def matchfiles(search_dir, dst_dir, filelist, path_pattern):
 		if path_parser.match(dirpath):
 			for filename in filenames:
 				if filename in filelist:
-					shutil.copy(os.path.join(dirpath, filename), dst_dir)
+					shutil.copy(os.path.join(dirpath, filename), os.path.join(dst_dir, filename))
 
 def get_filelist(src_dir):
 	return os.listdir(src_dir)
