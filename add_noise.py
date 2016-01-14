@@ -14,7 +14,7 @@ SAMPLE_LEN = 0.3
 # the length of noise to be added
 NOISE_LEN = 0.1 # to be a variable
 
-THRESHOLD = 50
+THRESHOLD = 5000
 
 
 PACKTYPE_MAP = { 
@@ -79,7 +79,7 @@ def reverse_copier(header, samples):
 	for sample in samples:
 		nframes = len(sample)
 		if thresh_wav(sample):
-			noises.append(pack(get_packfmt(sampwidth, nframes), sample.reverse()))
+			noises.append(pack(get_packfmt(sampwidth, nframes), *sample[-1::-1]))
 			extra_frames += nframes
 		else:
 			noises.append('')
