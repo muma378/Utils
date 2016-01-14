@@ -142,7 +142,7 @@ def readfiles(root_dir, settings_file):
 def process(filepath, settings):
 	print("Reading %s ..." % filepath)
 	t = DBF(filepath, load=True)
-	fields_avg = []
+	fields_avg = [ 0.0 for i in settings[OA_KEY]]
 	xlsx_list = []
 	# row index and data
 	print("Filtering data now")
@@ -153,7 +153,7 @@ def process(filepath, settings):
 					t.deleted.append(record)
 					raise InvalidLineException('Warning: line %d in %s is invalid, has been removed ' % (ri, filepath))			
 			for fi, avg_attr in enumerate(settings[OA_KEY]):
-				fields_avg.setdefault(fi, []).append(record[avg_attr])
+				fields_avg[fi] += record[avg_attr]
 
 			xlsx_list.append(record)
 		except InvalidLineException as e:
