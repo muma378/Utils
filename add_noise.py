@@ -3,11 +3,27 @@
 import os
 import sys
 import wave
-from struct import pack
-from random import randrange
+from math import pow, sqrt
+from struct import pack, unpack
+from random import randrange, gauss
 
 MAXVOLUME = 20
 MEDIA = '.wav'
+SAMPLE_LEN = 0.3
+NOISE_LEN = 0.1
+
+PACKTYPE_MAP = { 
+	1: 'c',
+	2: 'h',
+	4: 'l',
+	8: 'q',
+}
+
+PACKENDIAN_MAP = {
+	'little': '<',
+	'big':'>',
+}
+
 
 def waveproc(src_file, dst_file):
 	wr = wave.open(src_file, 'rb')
@@ -15,7 +31,8 @@ def waveproc(src_file, dst_file):
 	header = list(wr.getparams())
 	content = wr.readframes(header[3])
 	
-	noise_gen = noise_generator(header, 0.1, 2)
+	samples = extract_samples(header, SAMPLE_LEN, content)
+	noise_gen = noise_generator(header, NOISE_LEN, 2, samples)
 	header[3] += next(noise_gen)
 	wr.close()
 
@@ -31,33 +48,59 @@ def waveproc(src_file, dst_file):
 	ww.writeframesraw(next(noise_gen))
 	ww.close()
 
+
+# extracts a piece of sample respectively at the begining and ending
+def extract_samples(params, duration, content):
+	nchannels, sampwidth, framerate = params[0:3]
+	nframes = int(duration * nchannels * framerate)
+	nbytes = nframes *  sampwidth
+
+	positions = [(0, nbytes), (-nbytes, None)]
+	fmt = PACKENDIAN_MAP[sys.byteorder] + PACKTYPE_MAP[sampwidth]*nframes
+	return unpack_samples(fmt, content, positions)
+
+def unpack_samples(fmt, content, positions):
+	samples = []
+	for start, end in positions:
+		samples.append(unpack(fmt, content[start:end]))
+	return samples
+
+
 # duration counted as second
 # num is how many pieces of noise to generate
-def noise_generator(params, duration, num):
+def noise_generator(params, duration, num, samples):
 	nchannels, sampwidth, framerate = params[0:3]
-
-	# the number of sampling between the duration
+	# the number of frames between the duration
 	sampling_size = int(duration * nchannels * framerate)
 	# the size of noises generated in total
 	yield num * sampling_size * sampwidth
 
 	# identifiers for different size in lib struct
-	packtype_map = { 
-		1: 'c',
-		2: 'h',
-		4: 'l',
-		8: 'q',
-	}
 
-	packendian_map = {
-		'little': '<',
-		'big':'>',
-	}
-
-	_type = packtype_map[sampwidth]
+	_endian = PACKENDIAN_MAP[sys.byteorder]
+	_type = PACKTYPE_MAP[sampwidth]
 	for i in xrange(num):
-		noise = [randrange(MAXVOLUME) for i in xrange(sampling_size)]
-		yield pack(packendian_map[sys.byteorder]+_type*sampling_size, *noise)
+		mu, sigma = gauss_params(samples[i])
+		# noise = [randrange(MAXVOLUME) for i in xrange(sampling_size)]
+		noise = [gauss(mu, sigma) for i in xrange(sampling_size)]
+		import pdb;pdb.set_trace()		
+		yield pack(_endian+_type*sampling_size, *noise)
+
+def mean(l):
+	return sum(l)/len(l)
+
+# unbiased estimitor for sample standard deviation
+# N-1 instead of N
+def stddev(l, mu):
+	return sqrt(sum([ pow(i-mu, 2) for i in l ])/(len(l) - 1))
+
+def gauss_params(l):
+	N = len(l)
+	# mean
+	mu = sum(l) / N
+	# sample standard deviation
+	sigma = sqrt(sum([ pow(i-mu, 2) for i in l ])/(N - 1))
+	return mu, sigma
 
 
 def readfiles(src_dir, dst_dir):
