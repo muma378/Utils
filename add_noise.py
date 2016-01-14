@@ -14,7 +14,7 @@ SAMPLE_LEN = 0.3
 # the length of noise to be added
 NOISE_LEN = 0.1 # to be a variable
 
-THRESHOLD = 30
+THRESHOLD = 50
 
 
 PACKTYPE_MAP = { 
@@ -31,10 +31,13 @@ PACKENDIAN_MAP = {
 
 
 def waveproc(header, content):
-	samples = extract_samples(header, SAMPLE_LEN, content)
-	noise_gen = noise_generator(header, NOISE_LEN, 2, samples)
-	header[3] += next(noise_gen)
-	return noise_gen
+	# samples = extract_samples(header, SAMPLE_LEN, content)
+	# noise_gen = noise_generator(header, NOISE_LEN, 2, samples)
+	# 
+	# return noise_gen
+	samples = extract_samples(header, NOISE_LEN, content)
+	return reverse_copier(header, samples)
+
 
 def waveio(src_file, dst_file):
 	wr = wave.open(src_file, 'rb')
@@ -44,6 +47,7 @@ def waveio(src_file, dst_file):
 	wr.close()
 
 	noise_gen = waveproc(header, content)	
+	header[3] += next(noise_gen)
 
 	dst_dir = os.path.dirname(dst_file)
 	if not os.path.exists(dst_dir):
@@ -57,13 +61,32 @@ def waveio(src_file, dst_file):
 	ww.writeframesraw(next(noise_gen))
 	ww.close()
 
-def threshold_wav(samples):
-	 for sample in samples:
-	 	if gauss_params(sample)[1] < THRESHOLD:
-	 		yield True
-	 	else:
-	 		yield False
-	 	
+
+def get_packfmt(sampwidth, nframes):
+	_endian = PACKENDIAN_MAP[sys.byteorder]
+	# identifiers for different size in lib struct
+	_type = PACKTYPE_MAP[sampwidth]
+	return _endian + _type * nframes
+
+def thresh_wav(sample):
+	return gauss_params(sample)[1] < THRESHOLD
+
+def reverse_copier(header, samples):
+	sampwidth = header[1]
+	noises = []
+	extra_frames = 0
+
+	for sample in samples:
+		nframes = len(sample)
+		if thresh_wav(sample):
+			noises.append(pack(get_packfmt(sampwidth, nframes), sample.reverse()))
+			extra_frames += nframes
+		else:
+			noises.append('')
+
+	yield extra_frames
+	for noise in noises:
+		yield noise
 
 # extracts a piece of sample respectively at the begining and ending
 def extract_samples(params, duration, content):
@@ -72,7 +95,7 @@ def extract_samples(params, duration, content):
 	nbytes = nframes *  sampwidth
 
 	positions = [(0, nbytes), (-nbytes, None)]
-	fmt = PACKENDIAN_MAP[sys.byteorder] + PACKTYPE_MAP[sampwidth]*nframes
+	fmt = get_packfmt(sampwidth, nframes)
 	return unpack_samples(fmt, content, positions)
 
 def unpack_samples(fmt, content, positions):
@@ -81,14 +104,18 @@ def unpack_samples(fmt, content, positions):
 		samples.append(unpack(fmt, content[start:end]))
 	return samples
 
+def sample_size(nchannels, framerate, duration):
+	# the number of frames between the duration
+	return int(duration * nchannels * framerate)
+
 # duration counted as second
 # num is how many pieces of noise to generate
 def noise_generator(params, duration, num, samples):
 	nchannels, sampwidth, framerate = params[0:3]
 	# the number of frames between the duration
 	sampling_size = int(duration * nchannels * framerate)
-	# the size of noises generated in total
-	yield num * sampling_size * sampwidth
+	# the frames of noises generated in total
+	yield num * sampling_size
 
 	_endian = PACKENDIAN_MAP[sys.byteorder]
 	# identifiers for different size in lib struct
