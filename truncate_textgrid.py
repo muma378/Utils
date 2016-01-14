@@ -95,7 +95,7 @@ def output_dict(truncated_dict, dst_file='truncate.json'):
 
 def prefill_adaptor(items):
 	for filename, slices in items.items():
-		items[filename] = textgrid_generator.prefill_slices(slices)
+		items[filename] = tg.prefill_slices(slices)
 
 
 if __name__ == '__main__':
@@ -115,7 +115,7 @@ if __name__ == '__main__':
 	truncated_dict = truncate(items)
 	dst_name = src.split('.')[0]	
 	tg.output_textgrids(dst_name+'truncated', items, False)
-	tg.output_dict(truncated_dict, dst_file=dst_name+'.json')
+	output_dict(truncated_dict, dst_file=dst_name+'.json')
 
 
 #for text file

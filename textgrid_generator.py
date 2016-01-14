@@ -60,16 +60,16 @@ def parse_line(line, items):
 		url = unicode(columns[0], 'utf-8')
 		try:
 			groups = re.search(URL_PATTERN, url, re.UNICODE).groupdict()
-			info = {'slice': int(groups['slice']), 'xmin': str(float(groups['start'])+float(columns[2])), 'xmax': str(float(groups['start'])+float(columns[3])), 'text': columns[4]}
+			info = {'slice': int(groups['slice']), 'xmin': float(groups['start'])+float(columns[2]), 'xmax': float(groups['start'])+float(columns[3]), 'text': columns[4]}
 		except (AttributeError, ValueError) as e:
 			if columns[2] == 'None':
 				columns[2] = 0
-				info = {'slice': int(groups['slice']), 'xmin': str(float(groups['start'])+float(columns[2])), 'xmax': str(float(groups['start'])+float(columns[3])), 'text': columns[4]}
+				info = {'slice': int(groups['slice']), 'xmin': float(groups['start'])+float(columns[2]), 'xmax': float(groups['start'])+float(columns[3]), 'text': columns[4]}
 			else:
 				print "Unable to parse the url: " + url
 				return
 
-		item.setdefault(groups['name'], []).append(info)
+		items.setdefault(groups['name'], []).append(info)
 
 
 def generate_interval(aslice, interval_index, text=''):
@@ -96,7 +96,7 @@ def generate_output(filled_slices):
 
 # to fill 'gaps' in the list of slices
 # gaps means the values of xmax and xmin in continus slices are not the same
-def prefill_items(slices):
+def prefill_slices(slices):
 	ordered_slices = sorted(slices, key=lambda x:x['slice'])
 	previous_xmax = 0
 	filled_slices = []
@@ -116,7 +116,7 @@ def output_textgrids(root_dir, items, prefill=True):
 		dst = root_dir + os.sep + filename + '.textgrid'
 		with open(dst, "w") as f:
 			if prefill:
-				slices =prefill_items(slices)
+				slices =prefill_slices(slices)
 			f.write(generate_output(slices))
 
 
