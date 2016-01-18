@@ -1,3 +1,4 @@
+#!/usr/local/bin/python2.7
 # -*- coding: utf-8 -*-
 
 # textgrid_generator.py - usage: python textgrid_generator.py configure.txt
@@ -38,14 +39,35 @@ TEMPLATE_INTERVALS = """			intervals [{interval_index}]:
 			text = "{text}"
 """
 
-URL_PATTERN = '.*/(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.wav'
-# URL_PATTERN = '^(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.mp3'
+# URL_PATTERN = '.*/(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[wav|mp3|8K]'
+URL_PATTERN = '^(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[mp3|wav]'
+# URL_PATTERN = '.*/(?P<name>.+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[wav|mp3|8K]'
+
+PATTERN_BODY = '(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[mp3|wav|8K]'
+SLICE_PATTERN = '_(?P<slice>\d+)'
 
 #sort and organize
 def parse_file(src, items):
 	with open(src, "r") as f:
 		for line in f:
 			parse_line(line, items)
+
+# a line could be "http://crowdfile.blob.core.chinacloudapi.cn/cutted-wav-blob/20150825_124045_945_3693.92_3695.515.wav"
+# or "20150825_124045_945_3693.92_3695.515.wav"
+# or "20150825_124045_192392392_3693.92_3695.515.wav" (no slice)
+def guess_pattern(line):
+	if line.startswith('http:'):
+		PATTERN_HEAD = '.*/'
+	else:
+		PATTERN_HEAD = '^'
+	pattern = PATTERN_HEAD + PATTERN_BODY
+	try:
+		groups = re.match(pattern, line, re.UNICODE).groupdict()
+		assert float(groups['slice']) < 10000
+		return pattern
+	except (AttributeError, AssertionError) as e:
+		return pattern.replace(SLICE_PATTERN, '')
+
 
 # to convert lines in the config into a dict with keys described below
 # items = { 
@@ -59,15 +81,15 @@ def parse_line(line, items):
 	if columns[1] == '1':
 		url = unicode(columns[0], 'utf-8')
 		try:
-			groups = re.search(URL_PATTERN, url, re.UNICODE).groupdict()
-			info = {'slice': int(groups['slice']), 'xmin': float(groups['start'])+float(columns[2]), 'xmax': float(groups['start'])+float(columns[3]), 'text': columns[4]}
-		except (AttributeError, ValueError) as e:
+			pattern = guess_pattern(url)
+			groups = re.search(pattern, url, re.UNICODE).groupdict()
 			if columns[2] == 'None':
 				columns[2] = 0
-				info = {'slice': int(groups['slice']), 'xmin': float(groups['start'])+float(columns[2]), 'xmax': float(groups['start'])+float(columns[3]), 'text': columns[4]}
-			else:
-				print "Unable to parse the url: " + url
-				return
+			slice_no = int(groups.setdefault('slice', 1))
+			info = {'slice': slice_no, 'xmin': float(groups['start'])+float(columns[2]), 'xmax': float(groups['start'])+float(columns[3]), 'text': columns[4]}
+		except (AttributeError, ValueError) as e:
+			print "Unable to parse the url: " + url
+			return
 
 		items.setdefault(groups['name'], []).append(info)
 
@@ -102,6 +124,7 @@ def prefill_slices(slices):
 	filled_slices = []
 	for aslice in ordered_slices:
 		if previous_xmax != aslice['xmin']:
+			import pdb;pdb.set_trace()
 			filled_slices.append({'slice': aslice['slice']-1, 'xmin': previous_xmax, 'xmax': aslice['xmin'], 'text': ''})
 		filled_slices.append(aslice)
 		previous_xmax = aslice['xmax']
