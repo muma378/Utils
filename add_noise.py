@@ -20,9 +20,9 @@ MEDIA = '.wav'
 # the length of orignial audio to be sampled
 SAMPLE_LEN = 0.3
 # the length of noise to be added
-NOISE_LEN = 0.1 # to be a variable
+NOISE_LEN = 0.07 # to be a variable
 
-THRESHOLD = 5000
+THRESHOLD = 250
 
 
 PACKTYPE_MAP = { 
@@ -38,6 +38,21 @@ PACKENDIAN_MAP = {
 }
 
 
+LOGFILE = 'extra_noise.log'
+LOGFP = None
+
+def setup(root_dir):
+	global LOGFP
+	if not os.path.exists(root_dir):
+		os.makedirs(root_dir)
+	LOGFP = open(os.path.join(root_dir, LOGFILE), 'w')
+
+def teardown(root_dir):
+	LOGFP.close()
+
+def loginfo(msg):
+	LOGFP.write(msg+os.linesep)
+
 def waveproc(header, content):
 	# samples = extract_samples(header, SAMPLE_LEN, content)
 	# noise_gen = noise_generator(header, NOISE_LEN, 2, samples)
@@ -46,16 +61,18 @@ def waveproc(header, content):
 	samples = extract_samples(header, NOISE_LEN, content)
 	return reverse_copier(header, samples)
 
-
 def waveio(src_file, dst_file):
+	print("Processing %s" % src_file)
 	wr = wave.open(src_file, 'rb')
 	# nchannels, sampwidth(bytes), framerate, nframes, comptype, compname
 	header = list(wr.getparams())
 	content = wr.readframes(header[3])
 	wr.close()
 
-	noise_gen = waveproc(header, content)	
-	header[3] += next(noise_gen)
+	noise_gen = waveproc(header, content)
+	added_noise = next(noise_gen)
+	loginfo("%s\t%s\t%s" % (src_file, sample_duration(header[0], header[2], header[3]), sample_duration(header[0], header[2], added_noise)))
+	header[3] += added_noise
 
 	dst_dir = os.path.dirname(dst_file)
 	if not os.path.exists(dst_dir):
@@ -116,6 +133,10 @@ def sample_size(nchannels, framerate, duration):
 	# the number of frames between the duration
 	return int(duration * nchannels * framerate)
 
+def sample_duration(nchannels, framerate, nframes):
+	return float(nframes)/(nchannels*framerate)
+
+# ABANDONED
 # duration counted as second
 # num is how many pieces of noise to generate
 def noise_generator(params, duration, num, samples):
@@ -148,8 +169,8 @@ def gauss_params(l):
 	mu = sum(l) / N
 	# sample standard deviation
 	sigma = sqrt(sum([ pow(i-mu, 2) for i in l ])/(N - 1))
+	print("mu: %s sigma: %s" % (mu, sigma))
 	return mu, sigma
-
 
 def readfiles(src_dir, dst_dir):
 	for dirpath, dirnames, filenames in os.walk(src_dir):
@@ -157,7 +178,8 @@ def readfiles(src_dir, dst_dir):
 			if filename.endswith(MEDIA):
 				try:
 					src_file = os.path.join(dirpath, filename)
-					dst_file = os.path.join(dst_dir, src_file[len(src_dir):])	# should not use replace
+					src_dir_len = len(src_dir) if src_dir.endswith(os.sep) else len(src_dir)+1
+					dst_file = os.path.join(dst_dir, src_file[src_dir_len:])	# should not use replace
 					waveio(src_file, dst_file)
 				except Exception as e:
 					print e
@@ -167,7 +189,10 @@ def readfiles(src_dir, dst_dir):
 def main():
 	src = sys.argv[1]
 	dst = sys.argv[2]
+	setup(dst)
+	loginfo("filename\toriginal duration\tadded duration")
 	readfiles(src, dst)
+	teardown(dst)
 
 if __name__ == '__main__':
 	main()
