@@ -73,8 +73,6 @@ def truncate(textgrid_dict):
 	for filename, intervals in textgrid_dict.items():
 		shift = 0
 		truncated = []
-		if filename == '920233_1548_2039_1446128521164':
-			import pdb;pdb.set_trace()
 		for i in intervals:
 			# no text but too long
 			if not i['text'] and i['xmax'] - i['xmin'] > LONGEST_MUTE:
@@ -97,6 +95,7 @@ def output_dict(truncated_dict, dst_file='truncate.json'):
 
 def prefill_adaptor(items):
 	for filename, slices in items.items():
+		tg.reslice(slices)
 		items[filename] = tg.prefill_slices(slices)
 
 

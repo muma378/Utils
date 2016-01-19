@@ -85,7 +85,7 @@ def parse_line(line, items):
 			groups = re.search(pattern, url, re.UNICODE).groupdict()
 			if columns[2] == 'None':
 				columns[2] = 0
-			slice_no = int(groups.setdefault('slice', 1))
+			slice_no = groups.setdefault('slice', None)
 			info = {'slice': slice_no, 'xmin': float(groups['start'])+float(columns[2]), 'xmax': float(groups['start'])+float(columns[3]), 'text': columns[4]}
 		except (AttributeError, ValueError) as e:
 			print "Unable to parse the url: " + url
@@ -124,18 +124,31 @@ def prefill_slices(slices):
 	filled_slices = []
 	for aslice in ordered_slices:
 		if previous_xmax != aslice['xmin']:
-			import pdb;pdb.set_trace()
-			filled_slices.append({'slice': aslice['slice']-1, 'xmin': previous_xmax, 'xmax': aslice['xmin'], 'text': ''})
+			filled_slices.append({'slice': int(aslice['slice'])-1, 'xmin': previous_xmax, 'xmax': aslice['xmin'], 'text': ''})
 		filled_slices.append(aslice)
 		previous_xmax = aslice['xmax']
 	return filled_slices
 
+# added latter
+# to solve the case that several pieces with same name but without slice number
+# this case may lead an incorrectly prefilling
+def reslice(slices):
+	INCREMENT = 2
+	if slices[0]['slice'] is None:	# unsliced before
+		slices.sort(key=lambda x: x['xmin'])
+		slices[0]['slice'] = 1 if slices[0]['xmin'] == 0 else 2 
+		for s in slices:
+			if s['slice'] is None:
+				s['slice'] = pre_slice_no + INCREMENT
+			pre_slice_no = s['slice']
+	return slices
+
 def output_textgrids(root_dir, items, prefill=True):
-	mkdir = 'MD' if os.name is 'nt' else 'mkdir'
 	if not os.path.exists(root_dir):
-		subprocess.check_call(mkdir+' '+root_dir, shell=True)
+		os.makedirs(root_dir)
 	# ordered = collections.OrderedDict(sorted(items.items()))
 	for filename, slices in items.items():
+		reslice(slices)
 		dst = root_dir + os.sep + filename + '.textgrid'
 		with open(dst, "w") as f:
 			if prefill:
