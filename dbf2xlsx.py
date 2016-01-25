@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # dbf2xlsx.py - usage: python dbf2xlsx.py root_dir config.json
-# reads dbf files under root_dir and the config.json, 
+# reads dbf files under root_dir and a config.json, 
 # removes data if the value of the fields which in the 'check' is 0,
 # calculates the average values of fields which in the 'average' and generates 
 # an excel contain all files

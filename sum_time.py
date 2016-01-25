@@ -1,3 +1,4 @@
+# an auxiliary util to count the duration added by add_noise.py
 import os
 import sys
 

@@ -4,7 +4,7 @@
 # textgrid_generator.py - usage: python textgrid_generator.py configure.txt
 # to parse the configure.txt and translate it into textgrid files
 # author: xiao yang <xiaoyang0117@gmail.com>
-# date: 2015.12.28
+# date: 2015.01.19
 # the format of the text to parse is below:
 # http://crowdfile.blob.core.chinacloudapi.cn/cutted-wav-blob/20150810_225453_52_193.63_194.975.wav	1	0.00785	1.44	我有去问我一个	1.44
 
@@ -56,6 +56,8 @@ def parse_file(src, items):
 # or "20150825_124045_945_3693.92_3695.515.wav"
 # or "20150825_124045_192392392_3693.92_3695.515.wav" (no slice)
 def guess_pattern(line):
+	if :
+		pass
 	if line.startswith('http:'):
 		PATTERN_HEAD = '.*/'
 	else:
@@ -83,8 +85,10 @@ def parse_line(line, items):
 		try:
 			pattern = guess_pattern(url)
 			groups = re.search(pattern, url, re.UNICODE).groupdict()
+			# for an exception
 			if columns[2] == 'None':
 				columns[2] = 0
+			# for the pattern without the variable slice
 			slice_no = groups.setdefault('slice', None)
 			info = {'slice': slice_no, 'xmin': float(groups['start'])+float(columns[2]), 'xmax': float(groups['start'])+float(columns[3]), 'text': columns[4]}
 		except (AttributeError, ValueError) as e:

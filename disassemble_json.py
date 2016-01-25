@@ -1,5 +1,5 @@
 # disassemble_json.py - usage: python disassemble_json.py filename.json
-# a temporary script to work with batch_imgproc.sh and cvutils.py.
+# a temporary script to work with batch_imgproc.sh and cvutils.
 # it is for the situation that all pixels to marks are stored in a json file instead of 
 # corresponding path to a text file. 
 # with running the script, it is able to generate the directories and text file,

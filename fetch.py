@@ -1,3 +1,4 @@
+# to extract files which are same as ones in src_dir but located in dst_dir where matches path pattern
 import os
 import sys
 import re

@@ -1,3 +1,8 @@
+# truncate_wav.py - usage: python truncate_wav.py src_dir dst_dir settings
+# truncate wavs as the settings indicates
+# author: xiao yang <xiaoyang0117@gmail.com>
+# date: 2016.01.18
+
 import os
 import sys
 import subprocess
