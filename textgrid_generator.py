@@ -45,6 +45,8 @@ URL_PATTERN = '^(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[
 
 PATTERN_BODY = '(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[mp3|wav|8K]'
 SLICE_PATTERN = '_(?P<slice>\d+)'
+DEFAULT_MEDIA = u'.wav'
+SLICE_BOUND = 10000
 
 #sort and organize
 def parse_file(src, items):
@@ -65,7 +67,7 @@ def guess_pattern(line):
 	pattern = PATTERN_HEAD + PATTERN_BODY
 	try:
 		groups = re.match(pattern, line, re.UNICODE).groupdict()
-		assert float(groups['slice']) < 10000
+		assert float(groups['slice']) < SLICE_BOUND
 		return pattern
 	except (AttributeError, AssertionError) as e:
 		return pattern.replace(SLICE_PATTERN, '')
@@ -147,6 +149,13 @@ def reslice(slices):
 			pre_slice_no = s['slice']
 	return slices
 
+# output all audio files' name
+def write_filenames(dst_file, items):
+	with open(dst_file, 'w') as f:
+		for filename in items.keys():
+			name = (filename+DEFAULT_MEDIA+'\n')
+			f.write(name.encode('utf-8'))
+
 def output_textgrids(root_dir, items, prefill=True):
 	if not os.path.exists(root_dir):
 		os.makedirs(root_dir)
@@ -158,6 +167,10 @@ def output_textgrids(root_dir, items, prefill=True):
 			if prefill:
 				slices =prefill_slices(slices)
 			f.write(generate_output(slices))
+
+	names_txt = root_dir + 'names.txt'
+	write_filenames(names_txt, items)
+
 
 
 if __name__ == '__main__':

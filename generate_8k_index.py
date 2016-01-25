@@ -56,15 +56,13 @@ def exit_prompt(msg):
 
 
 def validate(*args):
-	mkdir = 'MD' if os.name is 'nt' else 'mkdir'
 	for arg in args:
 		if not os.path.exists(arg):
 			reply = raw_input("Unable to find %s, do you want to create a directory named it? [Y/N]" % arg).lower()
 			if reply is "n" or reply is "no":
 				exit_prompt("You choosed no, exit now ...")
 			else:
-				subprocess.check_call(mkdir+' '+arg, shell=True)
-				# Popen([mkdir, arg], shell=True)
+				os.makedirs(arg)
 				print("Directory %s is created." % arg)
 
 
@@ -85,7 +83,6 @@ def write_table(table, filename, template=""):
 			
 # files matched pattern in the path rooted src are fetched and moved to the dst
 def fetch_folders(src, dst='temp', refer='refer.txt', pattern=''):
-	separater = '\\' if os.name is 'nt' else '/'
 	validate(src, refer, dst)
 	with open(refer, 'r') as f:
 		candidates = f.read().split()
@@ -100,10 +97,10 @@ def fetch_folders(src, dst='temp', refer='refer.txt', pattern=''):
 			if unextracted.get(dirname):
 				print("Extracting folder %s to %s" % (dirname, dst))
 				try:
-					shutil.copytree(dirpath+separater+dirname, dst+separater+dirname)
+					shutil.copytree(os.path.join(dirpath, dirname), os.path.join(dst, dirname))
 					unextracted[dirname] = 0
 				except OSError, e:
-					print("File exists: %s" % dst+separater+dirname)
+					print("File exists: %s" %  os.path.join(dst, dirname))
 	
 	for c in candidates:
 		if unextracted[c]:
@@ -124,7 +121,6 @@ def fetch_files(src, dst='temp', pattern='.*\.8K'):
 
 # to generate the table for names and their duration
 def extract_timetable(src='temp', dst_file='', pattern='.*\.8K', extract_all=True):
-	separater = '\\' if os.name is 'nt' else '/'
 	global AS
 	# TODO: to use SWIG
 	# get the length of the duration according to its size
@@ -134,13 +130,13 @@ def extract_timetable(src='temp', dst_file='', pattern='.*\.8K', extract_all=Tru
 	if extract_all:
 		for dirpath, dirnames, filenames in os.walk(src):
 			for filename in filenames:
-				timetable[filename] = cal_duration((os.stat(dirpath+separater+filename).st_size))
+				timetable[filename] = cal_duration(os.stat(os.path.join(dirpath, filename)).st_size)
 	else:
 		prog = re.compile(pattern, re.UNICODE)
 		for dirpath, dirnames, filenames in os.walk(src):
 			for filename in filenames:
 				if prog.match(filename):
-					timetable[filename] = cal_duration((os.stat(dirpath+separater+filename).st_size))
+					timetable[filename] = cal_duration(os.stat(os.path.join(dirpath, filename)).st_size)
 	
 	write_table(timetable, dst_file, '{0[0]}\t{0[1]}\n')
 	return timetable

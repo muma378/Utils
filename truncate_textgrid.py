@@ -76,7 +76,7 @@ def truncate(textgrid_dict):
 		shift = 0
 		truncated = []
 		for i in intervals:
-			# no text but too long
+			# for no text but too long
 			if not i['text'] and i['xmax'] - i['xmin'] > LONGEST_MUTE:
 				temp_xmax = i['xmin'] + LONGEST_MUTE
 				truncated.append({temp_xmax: i['xmax']})

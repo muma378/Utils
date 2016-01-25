@@ -6,14 +6,34 @@ import os
 import sys
 import re
 
-URL_PATTERN = '.*/(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.(?P<format>.+)$'
+# URL_PATTERN = '.*/(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.(?P<format>.+)$'
+# URL_PATTERN = '.*/(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[wav|mp3|8K]'
+# URL_PATTERN = '^(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[mp3|wav]'
+# URL_PATTERN = '.*/(?P<name>.+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.[wav|mp3|8K]'
+
+PATTERN_BODY = '(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.(?P<format>.+)$'
+SLICE_PATTERN = '_(?P<slice>\d+)'
+
+def guess_pattern(line):
+	if line.startswith('http:'):
+		PATTERN_HEAD = '.*/'
+	else:
+		PATTERN_HEAD = '^'
+	pattern = PATTERN_HEAD + PATTERN_BODY
+	try:
+		groups = re.match(pattern, line, re.UNICODE).groupdict()
+		assert float(groups['slice']) < 10000
+		return pattern
+	except (AttributeError, AssertionError) as e:
+		return pattern.replace(SLICE_PATTERN, '')
 
 def parse_line(line, names):
 	columns = line.split('\t')
 	if columns[1] == '1':
 		url = unicode(columns[0], 'utf-8')
 		try:
-			groups = re.search(URL_PATTERN, url, re.UNICODE).groupdict()
+			pattern = guess_pattern(url)
+			groups = re.search(pattern, url, re.UNICODE).groupdict()
 			info = {'slice': int(groups['slice']), 'xmin': str(float(groups['start'])+float(columns[2])), 'xmax': str(float(groups['start'])+float(columns[3])), 'text': columns[4]}
 		except (AttributeError, ValueError) as e:
 			if columns[2] == 'None':
