@@ -95,19 +95,13 @@ def output_dict(truncated_dict, dst_file='truncate.json'):
 		f.write(json.dumps(truncated_dict, encoding='gb2312'))
 
 
-def prefill_adaptor(items):
-	for filename, slices in items.items():
-		tg.reslice(slices)
-		items[filename] = tg.prefill_slices(slices)
-
-
 if __name__ == '__main__':
 	src = sys.argv[1]
 	# if src is a text file
 	if os.path.isfile(src):
 		items = {}
 		tg.parse_file(src, items)
-		prefill_adaptor(items)
+		tg.preprocess(items)
 	# if src is a directory
 	elif os.path.isdir(src):
 		items = readfiles(src)
@@ -117,7 +111,7 @@ if __name__ == '__main__':
 
 	truncated_dict = truncate(items)
 	dst_name = src.split('.')[0]	
-	tg.output_textgrids(dst_name+'truncated', items, False)
+	tg.output_textgrids(dst_name+'truncated', items)
 	output_dict(truncated_dict, dst_file=dst_name+'.json')
 
 

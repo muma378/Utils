@@ -58,8 +58,6 @@ def parse_file(src, items):
 # or "20150825_124045_945_3693.92_3695.515.wav"
 # or "20150825_124045_192392392_3693.92_3695.515.wav" (no slice)
 def guess_pattern(line):
-	if :
-		pass
 	if line.startswith('http:'):
 		PATTERN_HEAD = '.*/'
 	else:
@@ -125,7 +123,7 @@ def generate_output(filled_slices):
 # to fill 'gaps' in the list of slices
 # gaps means the values of xmax and xmin in continus slices are not the same
 def prefill_slices(slices):
-	ordered_slices = sorted(slices, key=lambda x:x['slice'])
+	ordered_slices = sorted(slices, key=lambda x:x['xmin'])
 	previous_xmax = 0
 	filled_slices = []
 	for aslice in ordered_slices:
@@ -140,7 +138,7 @@ def prefill_slices(slices):
 # this case may lead an incorrectly prefilling
 def reslice(slices):
 	INCREMENT = 2
-	if slices[0]['slice'] is None:	# unsliced before
+	if slices[0]['slice'] == None:	# unsliced before
 		slices.sort(key=lambda x: x['xmin'])
 		slices[0]['slice'] = 1 if slices[0]['xmin'] == 0 else 2 
 		for s in slices:
@@ -156,16 +154,20 @@ def write_filenames(dst_file, items):
 			name = (filename+DEFAULT_MEDIA+'\n')
 			f.write(name.encode('utf-8'))
 
-def output_textgrids(root_dir, items, prefill=True):
+
+def preprocess(items):
+	for filename, slices in items.items():
+		reslice(slices)
+		items[filename] = prefill_slices(slices)
+
+
+def output_textgrids(root_dir, items):
 	if not os.path.exists(root_dir):
 		os.makedirs(root_dir)
 	# ordered = collections.OrderedDict(sorted(items.items()))
 	for filename, slices in items.items():
-		reslice(slices)
 		dst = root_dir + os.sep + filename + '.textgrid'
 		with open(dst, "w") as f:
-			if prefill:
-				slices =prefill_slices(slices)
 			f.write(generate_output(slices))
 
 	names_txt = root_dir + 'names.txt'
@@ -177,4 +179,5 @@ if __name__ == '__main__':
 	items = {}
 	parse_file(sys.argv[1], items)
 	directory_name = sys.argv[1].split('.')[0]
+	preprocess(items)
 	output_textgrids(directory_name, items)
