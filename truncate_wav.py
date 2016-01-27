@@ -17,12 +17,14 @@ class Truncator(threading.Thread):
 	def run(self):
 		while True:
 			(src, dst) = self.src_queue.get()
-			
 			dst_dir = os.path.dirname(dst)
 			if not os.path.exists(dst_dir):
 				os.makedirs(dst_dir)
 			cmd_truncate = CMD_TRUNCATE.format(**locals())
-			os.popen(cmd_truncate)
+			try:
+				os.popen(cmd_truncate)
+			except Exception, e:
+				print("Unable to process %s" % src)
 
 			self.src_queue.task_done()
 
@@ -32,7 +34,7 @@ def truncate(src, dst):
 	if not os.path.exists(dst_dir):
 		os.makedirs(dst_dir)
 	cmd_truncate = CMD_TRUNCATE.format(**locals())
-	os.popen(cmd_truncate)
+	os.popen(cmd_truncate)	
 
 def main():
 	src_dir = sys.argv[1]

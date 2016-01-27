@@ -11,16 +11,16 @@ class Traverser(threading.Thread):
 		generates a queue of pair tuple including src_file and dst_file
 
 	"""
-	def __init__(self, dir_queue, out_queue, dst_dir, filter_pattern='.*\.wav'):
+	def __init__(self, dir_queue, out_queue, root_dir, dst_dir, filter_pattern='.*\.wav'):
 		super(Traverser, self).__init__()
 		self.dir_queue = dir_queue
 		self.out_queue = out_queue
 		self.dst_dir = dst_dir
+		self.root_dir = root_dir
 		self.filter = re.compile(filter_pattern, re.UNICODE)
 
 	def run(self):
 		while True:
-			import pdb;pdb.set_trace()
 			src_dir = self.dir_queue.get()
 
 			items = os.listdir(src_dir)
@@ -30,9 +30,9 @@ class Traverser(threading.Thread):
 					self.dir_queue.put(full_path)
 				elif self.filter.match(full_path):
 					# extract the dst path
-					src_dir_len = len(src_dir) if src_dir.endswith(os.sep) else len(src_dir)+1
-					dst_file = os.path.join(self.dst_dir, full_path[src_dir_len:])	# should not use replace
-					
+					root_dir_len = len(self.root_dir ) if src_dir.endswith(os.sep) else len(self.root_dir )+1
+					dst_file = os.path.join(self.dst_dir, full_path[root_dir_len:])	# should not use replace
+
 					self.out_queue.put((full_path, dst_file))
 
 			self.dir_queue.task_done()
@@ -43,7 +43,7 @@ def thread_traverse(src_dir, dst_dir, thread_class, pattern='.*\.wav'):
 	out_queue = Queue.Queue()
 
 	for i in range(WORKER_NUM):
-		producer = Traverser(src_queue, out_queue, pattern)
+		producer = Traverser(src_queue, out_queue, src_dir, dst_dir, pattern)
 		producer.setDaemon(True)
 		producer.start()
 
