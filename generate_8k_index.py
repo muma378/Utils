@@ -47,6 +47,8 @@ KEY_MAP = {
 	'none': ('', ''),	# the same
 }
 
+# command to truncate wavs
+CMD_TRUNCATE = 'truncate.exe {src} {dst}'
 
 # TODO: to print the error traceback
 def exit_prompt(msg):
@@ -65,12 +67,11 @@ def validate(*args):
 				os.makedirs(arg)
 				print("Directory %s is created." % arg)
 
-
 # actually, tables are dicts. However, generally speaking, the first column from 
 # the table composes the key and the rest part compose the value. therefore, 
 # the value is a list mostly.
 def write_table(table, filename, template=""):
-	if filename:
+	if filename:`
 		sorted_table = sorted(table.items())
 		with open(filename, 'w') as f:
 			if template:
@@ -347,3 +348,4 @@ if __name__ == '__main__':
 	# timetable_file = r"C:\Users\xiaoyang\Desktop\ENV_8K\timetable.txt"
 	# index_file = r"C:\Users\xiaoyang\Desktop\ENV_8K\533index.txt"
 	# merge(timetable, subtitle_table, dst_file='index.txt')
+	
