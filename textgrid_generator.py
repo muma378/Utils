@@ -127,8 +127,11 @@ def prefill_slices(slices):
 	previous_xmax = 0
 	filled_slices = []
 	for aslice in ordered_slices:
-		if previous_xmax != aslice['xmin']:
+		if previous_xmax < aslice['xmin']:
 			filled_slices.append({'slice': int(aslice['slice'])-1, 'xmin': previous_xmax, 'xmax': aslice['xmin'], 'text': ''})
+		elif previous_xmax > aslice['xmin']:
+			continue  # abandon the slice for the repeated one
+		
 		filled_slices.append(aslice)
 		previous_xmax = aslice['xmax']
 	return filled_slices
@@ -154,12 +157,10 @@ def write_filenames(dst_file, items):
 			name = (filename+DEFAULT_MEDIA+'\n')
 			f.write(name.encode('utf-8'))
 
-
 def preprocess(items):
 	for filename, slices in items.items():
 		reslice(slices)
 		items[filename] = prefill_slices(slices)
-
 
 def output_textgrids(root_dir, items):
 	if not os.path.exists(root_dir):
@@ -172,7 +173,6 @@ def output_textgrids(root_dir, items):
 
 	names_txt = root_dir + 'names.txt'
 	write_filenames(names_txt, items)
-
 
 
 if __name__ == '__main__':
