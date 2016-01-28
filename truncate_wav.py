@@ -39,8 +39,8 @@ def truncate(src, dst):
 def main():
 	src_dir = sys.argv[1]
 	dst_dir = sys.argv[2]
-	# traverse(src_dir, dst_dir, truncate, '.wav')
-	thread_traverse(src_dir, dst_dir, Truncator, '.*\.wav')
+	traverse(src_dir, dst_dir, truncate, '.wav')
+	# thread_traverse(src_dir, dst_dir, Truncator, '.*\.wav')
 
 if __name__ == '__main__':
 	main()

@@ -188,7 +188,7 @@ def concatenate(nested_list, sep='\t'):
 	return line.strip()
 
 
-# match the audio and its subtitles (gcb)
+# match the audio and its subtitles (gcp)
 # subtitles are saved in the subtitle_dir, named as GXXX.gcp
 # contents in the GXXX.gcp are like: SXXXX\t subtitle
 # respectively, files in the audio_dir named as T0109G0001S0001.8K
