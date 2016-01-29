@@ -1,15 +1,3 @@
-# -*- coding: utf-8 -*-
-import os
-import sys
-import urllib2
-
-
-class Downloader(object):
-	"""docstring for Downloader"""
-	def __init__(self, arg):
-		super(Downloader, self).__init__()
-		self.arg = arg
-
 #!/usr/bin/python
 #coding=utf8
 
