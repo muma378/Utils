@@ -1,7 +1,8 @@
 import os
 import math
 
-# columns' index considered in the computation, starts with 0
+# columns' index considered in the computation
+# notes it starts with 0
 INTERESTED_COLS = [0, 1, 2]
 # the index of column represents y
 Y_COL = 0
