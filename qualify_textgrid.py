@@ -12,8 +12,8 @@ from traverse import traverse
 
 
 RULES_PATTERNS = (
-	(re.compile('^([0-2])?(?(1)(?P<text>.+)|$)', re.UNICODE), lambda x: x.group('text') , u'错误：第{lineno}行不是以数字开始或只包含数字，文本内容为“{text}”'),
-	(re.compile('^(\D+)'), lambda x: re.sub('\[[SNTP]\]', '', x.group(0), re.IGNORECASE), u'错误：第{lineno}行文本中包含数字，文本内容为“{text}”'),
+	(re.compile('^([0-2])?(?(1)(?P<text>.+)|$)', re.UNICODE), lambda x: x.group('text') , u'错误：第{lineno}行不是以特定数字开始或只包含数字，文本内容为“{text}”'),
+	(re.compile('^(\D+)$'), lambda x: re.sub('\[[SNTPsntp]\]', '', x.group(0)), u'错误：第{lineno}行除文本开始处外另包含数字，文本内容为“{text}”'),
 	(re.compile('((?!\[\w\]).)*$', re.UNICODE), lambda x: x.group(0), u'错误：第{lineno}行噪音符号标识错误，包含非SNTP字符，文本内容为"{text}"'),
 	(re.compile('(.{3,})$', re.UNICODE), lambda x: True, u'错误：第{lineno}行文本长度小于3，文本内容为"{text}"'),
 )
@@ -28,21 +28,26 @@ class CycleIterator(object):
 		super(CycleIterator, self).__init__()
 		self.iterable = iterable
 		self.iterator = cycle(iterable)
+		self.value = None
 	
-	def begin():
+	def head(self):
 		return self.iterable[0]
 
-	def last():
+	def tail(self):
 		return self.iterable[-1]
 
-	def next():
-		self.iterator.next()
+	def next(self):
+		self.value = self.iterator.next()
+		return self.value
+
+	def end(self):
+		return self.value == self.tail()
 
 	# to loop from the begining
-	def reset():
+	def reset(self):
 		self.iterator = cycle(self.iterable)
 
-	def index(i):
+	def index(self, i):
 		return self.iterable[i]
 
 
@@ -64,7 +69,7 @@ class TextgridParser(object):
 	MULTILINES_PATTERN = (
 		(re.compile('^\s*text = "(?P<text>.*)'), 'text', str),
 		(re.compile('^(?P<text>.*)$'), 'text', str),	# to adapt the new line
-		(re.compile('^(?P<text>.*)"'), 'text', str),
+		(re.compile('^(?P<text>.*)"\s*$'), 'text', str),
 	)
 
 	PATTERN_KEYS = ('pattern', 'key', 'type')
@@ -72,9 +77,10 @@ class TextgridParser(object):
 	def __init__(self, coding='utf-8'):
 		super(TextgridParser, self).__init__()
 		self.default_coding = coding
-		self.intervals = {}
+		self.intervals = []
 
 	def read(self, filename):
+		self.filename = filename
 		with open(filename, 'r') as f:
 			content = f.read()
 			self.coding = self.code_det(content[0:10])
@@ -92,109 +98,82 @@ class TextgridParser(object):
 			package.append({ keys[i]:vals[i] for i in range(len(keys)) })
 		return package
 
-	# def next_pattern(self):
-	# 	if self.append_mdoe:
-	# 		return 
-
-	def update(interval, item_pattern, line, append_mode=False):
+	def update(self, interval, item_pattern, line, append_mode=False):
 		ip = item_pattern
+		# import pdb;pdb.set_trace()
 		if append_mode:
-			interval.update({ ip['key']: ip['type'](ip['pattern'].match(line).group(ip['key'])) }) 
-		else:
 			# only for text
 			interval[ip['key']] += ip['type'](ip['pattern'].match(line).group(ip['key']))
+		else:
+			interval.update({ ip['key']: ip['type'](ip['pattern'].match(line).group(ip['key'])) }) 
 		return interval
 
-	def match(item_pattern, line):
+	def match(self, item_pattern, line):
 		return item_pattern['pattern'].match(line)
 
-	def parse(self):
-		lineno = 0
-		# interval = {}
-		APPEND_MODE = False
-		bp_iter = CycleIterator(TextgridParser.BLOCK_PATTERNS)
-		mp_iter = CycleIterator(TextgridParser.MULTILINES_PATTERN)
+	def append(self, interval):
+		pass
 
-		block_begining = bp_iter.next()
+	def parse(self):
+		print('正在解析%s...' % self.filename)
+		lineno = 0
+		interval = {}
+		APPEND_MODE = False
+		bp_iter = CycleIterator(self.pack(TextgridParser.PATTERN_KEYS, TextgridParser.BLOCK_PATTERNS))
+		mp_iter = CycleIterator(self.pack(TextgridParser.PATTERN_KEYS, TextgridParser.MULTILINES_PATTERN))
+
+		block_begining = bp_iter.head()
 		item_pattern = bp_iter.next()
 		for line in self.lines:
 			lineno += 1
 
+			# reset the block parsing once the line matched the begining pattern
 			if self.match(block_begining, line):
-				# reset the block parsing once the line matched the begining pattern
-				interval = {}
 				# self.update(interval, block_begining, line)
-				bp_iter.reset()
-			
-			elif APPEND_MODE:	# a text existed in multiple lines
-				if self.match(mp_iter.last(), line): # match the pattern of end line
-					self.update(interval, mp_iter.last(), line, APPEND_MODE)
+				# not the start actually, exception occured in parsing last block
+				if item_pattern != block_begining:
+					print('错误：无法解析第%d行，不是textgrid标准格式，已跳过' % (lineno-1))
+					interval = {}
+					APPEND_MODE = False
+					bp_iter.reset()
+					item_pattern = bp_iter.next()
+					
+			# when a text existed in multiple lines
+			elif APPEND_MODE:
+				# import pdb;pdb.set_trace()
+				if self.match(mp_iter.tail(), line): # match the pattern of end line
+					self.update(interval, mp_iter.tail(), line, APPEND_MODE)
 					self.intervals.append(interval)	# block ends
+					interval = {}
+					item_pattern = bp_iter.next()	# loop to the begining
 					APPEND_MODE = False
 				else:
-					# append the text body
+					# append the middle part of the text
 					self.update(interval, mp_iter.index(1), line, APPEND_MODE) 
 			
+			# match the item in sequence
 			if self.match(item_pattern, line):
-				pass
-				
+				self.update(interval, item_pattern, line)
 
+				# if the end of the block was matched
+				if bp_iter.end():
+					interval['lineno'] = lineno
+					self.intervals.append(interval)
+					interval = {}
 
-def reverse_parse(textgrid):
-	with open(textgrid, 'r') as f:
-		content = f.read()
-		coding = code_det(content.splitlines()[0])
-		lines = content.decode(coding).encode('utf-8').splitlines()
+				# loop to the begining
+				item_pattern = bp_iter.next()
 
-		lineno = 0
-		pat_idx = 0
-		interval = {}
-		intervals = []
-		APPEND_STATUS = False
+			#　match the begining of multi-lines text instead of a single line
+			elif self.match(mp_iter.head(), line):
+				self.update(interval, mp_iter.head(), line)
+				APPEND_MODE = True
 
-		for line in lines:
-			lineno += 1
-			p = PATTERNS[pat_idx] 
-
-			if APPEND_STATUS:
-				if PATTERNS[pat_idx+2][0].match(line):
-					p = PATTERNS[pat_idx+2]
-					interval[p[1]] += p[2](p[0].match(line).group(p[1]))
-					pat_idx += 1
-					APPEND_STATUS = False
-				elif PATTERNS[0][0].match(line):	# jump to the begining of a block
-					interval[p[1]] = p[2](PATTERNS[0][0].match(line).group(p[1]))
-					pat_idx = 1
-				else:
-					interval[p[1]] += line
-
-			elif p[0].match(line):
-				interval[p[1]] = p[2](p[0].match(line).group(p[1]))
-				pat_idx += 1
-			elif pat_idx == 3 and PATTERNS[pat_idx+1][0].match(line):
-				p = PATTERNS[pat_idx+1]
-				interval[p[1]] = p[2](p[0].match(line).group(p[1]))
-				APPEND_STATUS = True
-			elif pat_idx > 0:		#exception catched in parsing
-				print(u"解析textgrid过程中发生异常，已跳过第{0}行".format(lineno-1))
-				# reset
-				interval = {}
-				pat_idx = 0
-				if PATTERNS[pat_idx][0].match(line):	# jump to the begining of a block
-					interval[p[1]] = p[2](PATTERNS[pat_idx][0].match(line).group(p[1]))
-					pat_idx += 1
-			if pat_idx == 4:
-				interval['lineno'] = lineno
-				intervals.append(interval)
-				interval = {}
-				pat_idx = 0
-
-		return intervals
 
 def validate(intervals):
+	print('正在验证...')
 	for interval in intervals:
 		text = interval[TEXT_KEY].decode('utf-8')
-		# import pdb;pdb.set_trace()
 		if text:
 			for rp,fn,msg in RULES_PATTERNS:
 				result = rp.match(text)
@@ -204,10 +183,9 @@ def validate(intervals):
 					print(msg.format(lineno=interval['lineno'], text=interval['text'].decode('utf-8')))
 					break
 
-
 def qualify(src_file, _):
 	# intervals = reverse_parse(src_file)
-	tp = TextgridParser()
+	tp.read(src_file)
 	tp.parse()
 	validate(tp.intervals)
 	
@@ -222,4 +200,5 @@ def main():
 	
 
 if __name__ == '__main__':
+	tp = TextgridParser()
 	main()
