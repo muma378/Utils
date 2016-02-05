@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-import dictionary
+from sets import Set
+import emotions
 
-LANGUAGE = dictionary.KR
+LANGUAGE = emotions.KR
 HEADER = "Extracted Lines For {key}\n"
 
 # unable to find the leaf finally
@@ -48,7 +49,7 @@ def extract_matched(filename, tree, extracted):
 				if tree.get(line[i]):		# the entry
 					try:
 						key = climb(tree, line[i:])
-						extracted.setdefault(key, []).append(line)
+						extracted.setdefault(key, Set()).add(line.strip())
 						i += len(key)
 					except AstaryException, e:
 						i += 1
@@ -62,7 +63,7 @@ def write(filename, extracted):
 		for key, lines in extracted.items():
 			f.write(HEADER.format(key=key.capitalize()))
 			for line in lines:
-				f.write(line)
+				f.write(line+os.linesep)
 			f.write("\n\n")
 	print("Writes finished.")
 

@@ -11,6 +11,8 @@ import shutil
 MEDIA = '.wav'
 START = 'hdTimeStart'
 END = 'hdTimeEnd'
+CONTENT = 'Content'
+EFFECTIVE = 'Effective'
 FILENAME = 'file'
 CMD_TEMPLATE = './cut.exe {src_file} {dst_file} {start} {end}'
 
@@ -19,13 +21,18 @@ def parse_settings(filename):
 	with open(filename) as f:
 		for line in f:
 			d = eval(line)
-			settings[d[FILENAME]] = {'start': d[START], 'end':d[END]}
+			if d[EFFECTIVE] == 1:
+				settings[d[FILENAME]] = {'start': d[START], 'end':d[END], 'content':d[CONTENT]}
 	return settings
+
+def extract_text(filename, setting):
+	with open(filename.replace('.wav', '.txt'), 'w') as f:
+		f.write(settings['content'])
 
 def wavcut(src_file, dst_file, setting):
 	setting['src_file'] = src_file
 	setting['dst_file'] = dst_file
-
+	import pdb;pdb.set_trace()
 	cmd = CMD_TEMPLATE.format(**setting)
 	subprocess.check_call(cmd, shell=True)
 
@@ -45,6 +52,7 @@ def readfiles(src_dir, dst_dir, settings_file):
 				try:
 					setting = settings[filename]
 					wavcut(src_file, dst_file, setting)
+					extract_text(dst_file, setting)
 				except Exception as e:
 					print e
 					print("Unable to process %s" % src_file)
