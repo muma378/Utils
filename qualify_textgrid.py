@@ -83,7 +83,11 @@ class TextgridParser(object):
 		with open(filename, 'r') as f:
 			content = f.read()
 			self.coding = self.code_det(content[0:10])
-			self.lines = content.decode(self.coding, 'ignore').encode(self.default_coding).splitlines()
+			try:
+				self.lines = content.decode(self.coding).encode(self.default_coding).splitlines()
+			except UnicodeError, e:
+				print(u"对文件“%s”进行解码时发生错误，请选择合适的文本编辑器，并以utf-8编码格式保存后，再运行此程序" % filename)
+				sys.exit(1)
 
 	def code_det(self, headline, default='utf-8'):
 		for enc,boms in TextgridParser.CODINGS:
@@ -99,7 +103,6 @@ class TextgridParser(object):
 
 	def update(self, interval, item_pattern, line, append_mode=False):
 		ip = item_pattern
-		# import pdb;pdb.set_trace()
 		if append_mode:
 			# only for text
 			interval[ip['key']] += ip['type'](ip['pattern'].match(line).group(ip['key']))
@@ -205,7 +208,8 @@ def timesum(intervals):
 			category = TEXT_CATEGORY_PARSER.match(interval[TEXT_KEY].decode('utf-8')).group('category')
 			time_len = interval['xmax'] - interval['xmin']
 			if time_len < 0:
-				raise ValueError('error: value of xmax detected under corresponding xmin')
+				print('error: value of xmax detected under corresponding xmin')
+				sys.exit(0)
 			assoeted_intervals[category] += time_len
 		except KeyError, e:
 			assoeted_intervals[category] = time_len
