@@ -9,18 +9,41 @@ import sys
 import re
 import codecs
 from itertools import cycle
-from traverse import traverse
 
+import chardet
 
 RULES_PATTERNS = (
-	(re.compile('^([0-2])?(?(1)(?P<text>.+)|$)', re.UNICODE), lambda x: x.group('text') , u'错误：第{lineno}行不是以特定数字开始或只包含数字，文本内容为“{text}”'),
-	(re.compile('^(\D+)$'), lambda x: re.sub('\[[SNTPsntp]\]', '', x.group(0)), u'错误：第{lineno}行除文本开始处外另包含数字，文本内容为“{text}”'),
-	(re.compile('((?!\[\w\]).)*$', re.UNICODE), lambda x: x.group(0), u'错误：第{lineno}行噪音符号标识错误，包含非SNTP字符，文本内容为"{text}"'),
-	(re.compile(u'((?![【】]).)*$', re.UNICODE), lambda x: x.group(0), u'错误：第{lineno}行包含全角括号，文本内容为"{text}"'),
-	(re.compile('(.{3,25})$', re.UNICODE), lambda x: True, u'错误：第{lineno}行文本长度小于3或大于25，文本内容为"{text}"'),
+	(re.compile('^([0-2])?(?(1)(?P<text>.+)|$)', re.UNICODE), lambda x: x.group('text') , u'错误1：第{lineno}行不是以特定数字开始或只包含数字，文本内容为“{text}”'),
+	(re.compile('^(\D+)$'), lambda x: re.sub('\[[SNTPsntp]\]', '', x.group(0)), u'错误2：第{lineno}行除文本开始处外另包含数字，文本内容为“{text}”'),
+	(re.compile('((?!\[\w\]).)*$', re.UNICODE), lambda x: x.group(0), u'错误3：第{lineno}行噪音符号标识错误，包含非SNTP字符，文本内容为"{text}"'),
+	(re.compile(u'((?![【】]).)*$', re.UNICODE), lambda x: x.group(0), u'错误4：第{lineno}行包含全角括号，文本内容为"{text}"'),
+	(re.compile('(.{3,25})$', re.UNICODE), lambda x: True, u'错误5：第{lineno}行文本长度小于3或大于25，文本内容为"{text}"'),
 )
 	
 TEXT_KEY = 'text'
+
+LOGFILE = ''
+logger = None
+
+def setup(target):
+	global logger
+	global LOGFILE
+	if os.path.isdir(target):
+		if target.endswith('\\'):
+			target = target[:-1]
+		LOGFILE = os.path.join(target, os.path.basename(target)+'.log')
+	elif os.path.isfile(target):
+		LOGFILE = target + '.log'
+	logger = open(LOGFILE, 'w')
+
+def teardown():
+	logger.close()
+
+def loginfo(msg, stdout=False):
+	if stdout:
+		print(msg)
+	logger.write((msg+os.linesep).encode('utf-8'))
+
 
 class CycleIterator(object):
 	""" a wrapper for the itertools.cycle """
@@ -80,15 +103,17 @@ class TextgridParser(object):
 		self.intervals = []
 
 	def read(self, filename):
-		self.filename = filename
-		with open(filename, 'r') as f:
+		self.filename = unicode(filename, 'gb2312')
+		with open(filename, 'rb') as f:
 			content = f.read()
-			self.coding = self.code_det(content[0:10])
+			# self.coding = self.code_det(content[0:10])
+			self.coding = chardet.detect(content)['encoding']
 			try:
 				self.lines = content.decode(self.coding).encode(self.default_coding).splitlines()
 			except UnicodeError, e:
-				print(u"对文件“%s”进行解码时发生错误，请选择合适的文本编辑器，并以utf-8编码格式保存后，再运行此程序" % filename)
-				sys.exit(1)
+				loginfo(u'对文件“{filename}”进行解码时发生错误，请选择合适的文本编辑器，并以utf-8编码格式保存后，\
+					再运行此程序'.format(filename=self.filename), stdout=True)
+				raise IOError
 
 	def code_det(self, headline, default='utf-8'):
 		for enc,boms in TextgridParser.CODINGS:
@@ -118,7 +143,9 @@ class TextgridParser(object):
 		pass
 
 	def parse(self):
-		print(u'正在解析%s...' % self.filename)
+		print(u'正在解析{filename}...'.format(filename=self.filename))
+		loginfo(u'>>文件：{filename}'.format(filename=self.filename))
+
 		lineno = 0
 		interval = {}
 		APPEND_MODE = False
@@ -135,7 +162,7 @@ class TextgridParser(object):
 				# self.update(interval, block_begining, line)
 				# not the start actually, exception occured in parsing last block
 				if item_pattern != block_begining:
-					print(u'错误：无法解析第%d行，不是textgrid标准格式，已跳过' % (lineno-1))	# last line instead of the current
+					loginfo(u'错误：无法解析第%d行，不是textgrid标准格式，已跳过' % (lineno-1), stdout=True)	# last line instead of the current
 					interval = {}
 					APPEND_MODE = False
 					bp_iter.reset()
@@ -178,10 +205,11 @@ class TextgridParser(object):
 
 def validate(intervals, quiet=False):
 	validated = []
+	error_no = 0
 	if not quiet:
 		print(u'正在验证...')
 	for interval in intervals:
-		legal = True 	# to append legal textgrid in the validated list
+		legal = True 	# to append legal textgrid to the list
 		text = interval[TEXT_KEY].decode('utf-8')
 		if text:
 			for rp,fn,msg in RULES_PATTERNS:
@@ -190,14 +218,22 @@ def validate(intervals, quiet=False):
 					text = fn(result)
 				else:
 					if not quiet:
-						print(msg.format(lineno=interval['lineno'], text=interval['text'].decode('utf-8')))
+						loginfo(msg.format(lineno=interval['lineno'], text=interval['text'].decode('utf-8')))
 					legal = False
+					error_no += 1
 					break
 		else:
 			legal = False
 		if legal:
 			validated.append(interval)
+	if not quiet:
+		print(u'验证完成，检测到%d个错误' % error_no)
+		if error_no == 0:
+			loginfo(u'Succeed')
+		else:
+			loginfo(u'共%d个错误被检测到' % error_no)
 	return validated
+
 
 TEXT_CATEGORY_PARSER = re.compile('^(?P<category>[0-2])\D.*', flags=re.UNICODE)
 
@@ -226,6 +262,7 @@ def qualify(src_file, _):
 	tp.read(src_file)
 	tp.parse()
 	validate(tp.intervals)
+	loginfo('')	# extra space line
 
 def timeit(src_file, _):
 	tp.read(src_file)
@@ -233,21 +270,37 @@ def timeit(src_file, _):
 	validated_intervals = validate(tp.intervals, quiet=True)
 	timesum(validated_intervals)
 	
+def traverse(src_dir, dst_dir, fn, target='.txt'):
+	for dirpath, dirnames, filenames in os.walk(src_dir):
+		for filename in filenames:
+			if filename.endswith(target):
+				try:
+					src_file = os.path.join(dirpath, filename)
+					src_dir_len = len(src_dir) if src_dir.endswith(os.sep) else len(src_dir)+1
+					dst_file = os.path.join(dst_dir, src_file[src_dir_len:])	# should not use replace
+					fn(src_file, dst_file)
+				except Exception as e:
+					pass
+
 def main():
 	file_or_dir = sys.argv[1]
-	
+	setup(file_or_dir)
+
 	if len(sys.argv)>2 and sys.argv[2] == 'timeit':
 		fn = timeit
 	else:
 		fn = qualify
 
 	if os.path.isdir(file_or_dir): 
-		traverse(file_or_dir, '', fn, target='.textgrid')
+		traverse(file_or_dir, '', fn, target=('.txt', '.textgrid', '.TextGrid'))
 	elif os.path.isfile(file_or_dir):
 		fn(file_or_dir, '')
 	else:
 		print(u"指定的文件或目录不存在")
 	
+	teardown()
+
+ 
 if __name__ == '__main__':
 	tp = TextgridParser()
 	main()
