@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-# qualify_textgrid.py - usage: 
+# qualify_textgrid.py - usage: python qualify_textgrid src_file[src_root] [timeit]
 # to validate the format of a textgrid
+# or to calculate the sum time of text in respectively categories
 # author: Xiao Yang <xiaoyang0117@gmail.com>
 # date: 2016.02.02
 import os
@@ -19,8 +20,6 @@ RULES_PATTERNS = (
 )
 	
 TEXT_KEY = 'text'
-
-MEANINGLESS_CHAR = '\x00'
 
 class CycleIterator(object):
 	""" a wrapper for the itertools.cycle """
@@ -132,7 +131,7 @@ class TextgridParser(object):
 				# self.update(interval, block_begining, line)
 				# not the start actually, exception occured in parsing last block
 				if item_pattern != block_begining:
-					print('错误：无法解析第%d行，不是textgrid标准格式，已跳过' % (lineno-1))
+					print('错误：无法解析第%d行，不是textgrid标准格式，已跳过' % (lineno-1))	# last line instead of the current
 					interval = {}
 					APPEND_MODE = False
 					bp_iter.reset()
@@ -143,10 +142,12 @@ class TextgridParser(object):
 				# import pdb;pdb.set_trace()
 				if self.match(mp_iter.tail(), line): # match the pattern of end line
 					self.update(interval, mp_iter.tail(), line, APPEND_MODE)
+					interval['lineno'] = lineno
 					self.intervals.append(interval)	# block ends
 					interval = {}
 					item_pattern = bp_iter.next()	# loop to the begining
 					APPEND_MODE = False
+					# 2. block ending
 				else:
 					# append the middle part of the text
 					self.update(interval, mp_iter.index(1), line, APPEND_MODE) 
@@ -163,6 +164,7 @@ class TextgridParser(object):
 
 				# loop to the begining
 				item_pattern = bp_iter.next()
+				# 1. block ending
 
 			#　match the begining of multi-lines text instead of a single line
 			elif self.match(mp_iter.head(), line):
@@ -170,9 +172,12 @@ class TextgridParser(object):
 				APPEND_MODE = True
 
 
-def validate(intervals):
-	print('正在验证...')
+def validate(intervals, quiet=False):
+	validated = []
+	if not quiet:
+		print('正在验证...')
 	for interval in intervals:
+		legal = True 	# to append legal textgrid in the validated list
 		text = interval[TEXT_KEY].decode('utf-8')
 		if text:
 			for rp,fn,msg in RULES_PATTERNS:
@@ -180,25 +185,64 @@ def validate(intervals):
 				if result:
 					text = fn(result)
 				else:
-					print(msg.format(lineno=interval['lineno'], text=interval['text'].decode('utf-8')))
+					if not quiet:
+						print(msg.format(lineno=interval['lineno'], text=interval['text'].decode('utf-8')))
+					legal = False
 					break
+		else:
+			legal = False
+		if legal:
+			validated.append(interval)
+	return validated
+
+TEXT_CATEGORY_PARSER = re.compile('^(?P<category>[0-2])\D.*', flags=re.UNICODE)
+
+def timesum(intervals):
+	assoeted_intervals = {}
+	for interval in intervals:
+		try:
+			# assume it was validated before
+			category = TEXT_CATEGORY_PARSER.match(interval[TEXT_KEY].decode('utf-8')).group('category')
+			time_len = interval['xmax'] - interval['xmin']
+			if time_len < 0:
+				raise ValueError('error: value of xmax detected under corresponding xmin')
+			assoeted_intervals[category] += time_len
+		except KeyError, e:
+			assoeted_intervals[category] = time_len
+		except AttributeError, e:
+			print('error: did not validate the textgrid before calculating the time')
+			sys.exit(0)
+
+	for key, val in assoeted_intervals.items():
+		print('Total time for category %s is %fs' % (key, val))
+
 
 def qualify(src_file, _):
-	# intervals = reverse_parse(src_file)
 	tp.read(src_file)
 	tp.parse()
 	validate(tp.intervals)
+
+def timeit(src_file, _):
+	tp.read(src_file)
+	tp.parse()
+	validated_intervals = validate(tp.intervals, quiet=True)
+	timesum(validated_intervals)
 	
 def main():
 	file_or_dir = sys.argv[1]
+	
+	if sys.argv[2] == 'timeit':
+		fn = timeit
+	else:
+		fn = qualify
+
 	if os.path.isdir(file_or_dir): 
-		traverse(file_or_dir, '', qualify, target='.textgrid')
+		traverse(file_or_dir, '', fn, target='.textgrid')
 	elif os.path.isfile(file_or_dir):
-		qualify(file_or_dir, '')
+		fn(file_or_dir, '')
 	else:
 		print(u"指定的文件或目录不存在")
 	
-
 if __name__ == '__main__':
 	tp = TextgridParser()
 	main()
