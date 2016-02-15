@@ -83,7 +83,7 @@ class TextgridParser(object):
 		with open(filename, 'r') as f:
 			content = f.read()
 			self.coding = self.code_det(content[0:10])
-			self.lines = content.decode(self.coding).encode(self.default_coding).splitlines()
+			self.lines = content.decode(self.coding, 'ignore').encode(self.default_coding).splitlines()
 
 	def code_det(self, headline, default='utf-8'):
 		for enc,boms in TextgridParser.CODINGS:
@@ -114,7 +114,7 @@ class TextgridParser(object):
 		pass
 
 	def parse(self):
-		print('正在解析%s...' % self.filename)
+		print(u'正在解析%s...' % self.filename)
 		lineno = 0
 		interval = {}
 		APPEND_MODE = False
@@ -131,7 +131,7 @@ class TextgridParser(object):
 				# self.update(interval, block_begining, line)
 				# not the start actually, exception occured in parsing last block
 				if item_pattern != block_begining:
-					print('错误：无法解析第%d行，不是textgrid标准格式，已跳过' % (lineno-1))	# last line instead of the current
+					print(u'错误：无法解析第%d行，不是textgrid标准格式，已跳过' % (lineno-1))	# last line instead of the current
 					interval = {}
 					APPEND_MODE = False
 					bp_iter.reset()
@@ -175,7 +175,7 @@ class TextgridParser(object):
 def validate(intervals, quiet=False):
 	validated = []
 	if not quiet:
-		print('正在验证...')
+		print(u'正在验证...')
 	for interval in intervals:
 		legal = True 	# to append legal textgrid in the validated list
 		text = interval[TEXT_KEY].decode('utf-8')
@@ -231,7 +231,7 @@ def timeit(src_file, _):
 def main():
 	file_or_dir = sys.argv[1]
 	
-	if sys.argv[2] == 'timeit':
+	if len(sys.argv)>2 and sys.argv[2] == 'timeit':
 		fn = timeit
 	else:
 		fn = qualify
