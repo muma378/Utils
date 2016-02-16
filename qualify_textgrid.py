@@ -19,30 +19,50 @@ RULES_PATTERNS = (
 	(re.compile(u'((?![【】]).)*$', re.UNICODE), lambda x: x.group(0), u'错误4：第{lineno}行包含全角括号，文本内容为"{text}"'),
 	(re.compile('(.{3,25})$', re.UNICODE), lambda x: True, u'错误5：第{lineno}行文本长度小于3或大于25，文本内容为"{text}"'),
 )
-	
 TEXT_KEY = 'text'
 
-LOGFILE = ''
+TEXT_CATEGORY_PARSER = re.compile('^(?P<category>[0-2])\D.*', flags=re.UNICODE)
+
+MARKS_MEANING = {
+	'1': u'1-近端',
+	'2': u'2-远端',
+	'0': u'0-其他人说话',
+}
+	
+
+
 logger = None
+time_logger = None
 
 def setup(target):
 	global logger
-	global LOGFILE
+	global time_logger
 	if os.path.isdir(target):
 		if target.endswith('\\'):
 			target = target[:-1]
-		LOGFILE = os.path.join(target, os.path.basename(target)+'.log')
+		logfile = os.path.join(target, os.path.basename(target)+'.log')
+		timelog = os.path.join(target, 'duration.log')
 	elif os.path.isfile(target):
-		LOGFILE = target + '.log'
-	logger = open(LOGFILE, 'w')
+		logfile = target + '.log'
+		timelog = target + '_duration.log'
+	logger = open(logfile, 'w')
+	time_logger = open(timelog, 'w')
 
 def teardown():
 	logger.close()
+	time_logger.close()
 
-def loginfo(msg, stdout=False):
+def loginfo(msg, stdout=False, timelog=False):
 	if stdout:
 		print(msg)
 	logger.write((msg+os.linesep).encode('utf-8'))
+	if timelog:
+		logtime(msg)	#syntax sugar
+
+def logtime(msg, stdout=False):
+	if stdout:
+		print(msg)
+	time_logger.write((msg+os.linesep).encode('utf-8'))
 
 
 class CycleIterator(object):
@@ -102,8 +122,11 @@ class TextgridParser(object):
 		self.default_coding = coding
 		self.intervals = []
 
+	def reset(self):
+		self.intervals = []
+
 	def read(self, filename):
-		self.filename = unicode(filename, 'gb2312')
+		self.filename = filename
 		with open(filename, 'rb') as f:
 			content = f.read()
 			# self.coding = self.code_det(content[0:10])
@@ -111,8 +134,9 @@ class TextgridParser(object):
 			try:
 				self.lines = content.decode(self.coding).encode(self.default_coding).splitlines()
 			except UnicodeError, e:
-				loginfo(u'对文件“{filename}”进行解码时发生错误，请选择合适的文本编辑器，并以utf-8编码格式保存后，\
-					再运行此程序'.format(filename=self.filename), stdout=True)
+				loginfo(u'>>文件：{filename}'.format(filename=self.filename), stdout=True)
+				loginfo(u'解码时发生错误，请选择合适的文本编辑器，并以utf-8编码格式保存后，再运行此程序', stdout=True)
+				loginfo('')
 				raise IOError
 
 	def code_det(self, headline, default='utf-8'):
@@ -144,11 +168,12 @@ class TextgridParser(object):
 
 	def parse(self):
 		print(u'正在解析{filename}...'.format(filename=self.filename))
-		loginfo(u'>>文件：{filename}'.format(filename=self.filename))
-
+		loginfo(u'>>文件：{filename}'.format(filename=self.filename), timelog=True)
+		
 		lineno = 0
 		interval = {}
 		APPEND_MODE = False
+		self.reset()
 		bp_iter = CycleIterator(self.pack(TextgridParser.PATTERN_KEYS, TextgridParser.BLOCK_PATTERNS))
 		mp_iter = CycleIterator(self.pack(TextgridParser.PATTERN_KEYS, TextgridParser.MULTILINES_PATTERN))
 
@@ -232,12 +257,11 @@ def validate(intervals, quiet=False):
 			loginfo(u'Succeed')
 		else:
 			loginfo(u'共%d个错误被检测到' % error_no)
+	loginfo('')	# extra space line
 	return validated
 
 
-TEXT_CATEGORY_PARSER = re.compile('^(?P<category>[0-2])\D.*', flags=re.UNICODE)
-
-def timesum(intervals):
+def timeit(intervals):
 	assoeted_intervals = {}
 	for interval in intervals:
 		try:
@@ -245,31 +269,42 @@ def timesum(intervals):
 			category = TEXT_CATEGORY_PARSER.match(interval[TEXT_KEY].decode('utf-8')).group('category')
 			time_len = interval['xmax'] - interval['xmin']
 			if time_len < 0:
-				print('error: value of xmax detected under corresponding xmin')
-				sys.exit(0)
+				logtime(u'错误: 在第%d行检测到xmax的值大于xmin值' % interval['lineno'])
+				
 			assoeted_intervals[category] += time_len
 		except KeyError, e:
 			assoeted_intervals[category] = time_len
 		except AttributeError, e:
-			print('error: did not validate the textgrid before calculating the time')
+			print('error: did not validate the textgrid before calculating the time')	# for debugging
 			sys.exit(0)
+	print_duration(assoeted_intervals)
+	return assoeted_intervals
 
-	for key, val in assoeted_intervals.items():
-		print('Total time for category %s is %fs' % (key, val))
+SUM_DURATION = {}
+def timestat(assoeted_duration):
+	for key, val in assoeted_duration.items():
+		try:
+			SUM_DURATION[key] += val
+		except KeyError, e:
+			SUM_DURATION[key] = val
+
+
+def print_duration(assoeted_duration):
+	try:
+		for key, val in assoeted_duration.items():
+			logtime(u'%s总时长为 %fs' % (MARKS_MEANING[key], val), stdout=True)
+	except KeyError, e:
+		print('error: including unsupported marks')
+	logtime('')	# extra line spaces for ending of files
 
 
 def qualify(src_file, _):
 	tp.read(src_file)
 	tp.parse()
-	validate(tp.intervals)
-	loginfo('')	# extra space line
+	validated = validate(tp.intervals)
+	durations = timeit(validated)
+	timestat(durations)
 
-def timeit(src_file, _):
-	tp.read(src_file)
-	tp.parse()
-	validated_intervals = validate(tp.intervals, quiet=True)
-	timesum(validated_intervals)
-	
 def traverse(src_dir, dst_dir, fn, target='.txt'):
 	for dirpath, dirnames, filenames in os.walk(src_dir):
 		for filename in filenames:
@@ -285,16 +320,14 @@ def traverse(src_dir, dst_dir, fn, target='.txt'):
 def main():
 	file_or_dir = sys.argv[1]
 	setup(file_or_dir)
-
-	if len(sys.argv)>2 and sys.argv[2] == 'timeit':
-		fn = timeit
-	else:
-		fn = qualify
+	file_or_dir = unicode(file_or_dir, 'gb2312')
 
 	if os.path.isdir(file_or_dir): 
-		traverse(file_or_dir, '', fn, target=('.txt', '.textgrid', '.TextGrid'))
+		traverse(file_or_dir, '', qualify, target=('.textgrid', '.TextGrid'))
+		logtime(u'>>文件夹%s 内统计的总时长为' % file_or_dir, stdout=True)
+		print_duration(SUM_DURATION)
 	elif os.path.isfile(file_or_dir):
-		fn(file_or_dir, '')
+		qualify(file_or_dir, '')
 	else:
 		print(u"指定的文件或目录不存在")
 	
