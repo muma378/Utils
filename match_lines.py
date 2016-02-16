@@ -5,8 +5,10 @@ import re
 from sets import Set
 import emotions
 
-LANGUAGE = emotions.KR
-SEPARATORS = emotions.KR_SEPARATORS
+LANGUAGE = emotions.JP
+SEPARATORS = emotions.JP_SEPARATORS
+SPLIT_PARSER = re.compile(SEPARATORS, re.UNICODE)
+
 HEADER = ">>Extracted Lines For {key}\n"
 
 
@@ -49,19 +51,21 @@ def climb(tree, path):
 def extract_matched(filename, tree, extracted):
 	print("Reading " + filename + " now...")
 	with open(filename, 'r') as f:
-		for paragraph in f:
-			for line in re.split(SEPARATORS, paragraph):
+		data = f.read().decode('utf-8').splitlines()
+		for paragraph in data:
+			for line in SPLIT_PARSER.split(paragraph):
 				line = line.strip()
 				i = 0
-				while i < len(line):
-					if tree.get(line[i]):		# the entry
-						try:
-							key = climb(tree, line[i:])
-							extracted.setdefault(key, Set()).add(line)
-							i += len(key) - 1
-						except AstaryException, e:
-							pass
-					i += 1
+				if len(line) > 5 and len(line) < 120:
+					while i < len(line):
+						if tree.get(line[i]):		# the entry
+							try:
+								key = climb(tree, line[i:])
+								extracted.setdefault(key, Set()).add(line.encode('utf-8'))
+								i += len(key) - 1
+							except AstaryException, e:
+								pass
+						i += 1
 
 	return extracted
 

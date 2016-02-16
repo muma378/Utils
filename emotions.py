@@ -1,6 +1,19 @@
 ﻿# -*- coding: utf-8 -*-
 
-BASE_SEPARATORS = u": |, |\. |\? |! "
+BASE_SEPARATORS = u", |\. |\? |! |\t"
+
+ARAB = {
+	"smile": [u':-)', u':D', u':]', u':-D', u'8D', u'8-D', u'X-D', u'xD', u'8)', u':-))', u':))', u':\')'],
+	"cry": [u':\'-(', u':\'('],
+	"confusion": [u':/', u':L', u'=/'],
+	"amazed": [u'o.O', u':-O', u'o_0', u':O'],
+	"tongue": [u':P', u':p', u':-b', u'xp'],
+	"sad": [u':(', u':-C', u':-[', u':{', u'D;', u':c', u':<'],
+	"honor": [u'D=', u'D8', u'DX', u'D:<', u'V.V'],
+	"wink": [u';]', u';-)' u';-]'],
+}
+
+ARAB_SEPARATORS = BASE_SEPARATORS + u''
 
 JP = {
     "smile": [u'^_^', u'(^^)', u'(^_^)', u'(^-^)', u'(^.^)', u'(~_~)', u'(^。^)',
@@ -12,6 +25,8 @@ JP = {
     "angry": [u'(--メ)', u'(>_<)', u'(>。<)'],
     "disappoint": [u'(P_-)', ],
 }
+
+JP_SEPARATORS = BASE_SEPARATORS + u'|。|！|、|…|　|「|」|'
 
 KR = {
     "smile": [u'^^', u'^_^', u'*^^*', u'*^-^*', u'~_~'],
