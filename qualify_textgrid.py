@@ -3,7 +3,7 @@
 # to validate the format of a textgrid
 # or to calculate the sum time of text in respectively categories
 # author: Xiao Yang <xiaoyang0117@gmail.com>
-# date: 2016.02.02
+# date: 2016.02.16
 import os
 import sys
 import re
@@ -28,7 +28,6 @@ MARKS_MEANING = {
 	'2': u'2-远端',
 	'0': u'0-其他人说话',
 }
-	
 
 
 logger = None
@@ -288,13 +287,23 @@ def timestat(assoeted_duration):
 		except KeyError, e:
 			SUM_DURATION[key] = val
 
+TIME_UNIT = {
+	's':(1, u'秒'),
+	'm':(60.0, u'分'),
+	'h':(3600.0, u'小时')
+}
 
-def print_duration(assoeted_duration):
+def print_duration(assoeted_duration, unit='s'):
+	try:
+		divider, unit_display = TIME_UNIT[unit]
+	except KeyError, e:
+		print('error: unkown choice for unit')	#for debugging
+		sys.exit(1)
 	try:
 		for key, val in assoeted_duration.items():
-			logtime(u'%s总时长为 %fs' % (MARKS_MEANING[key], val), stdout=True)
+			logtime(u'%s总时长为 %f%s' % (MARKS_MEANING[key], val/divider, unit_display), stdout=True)
 	except KeyError, e:
-		print('error: including unsupported marks')
+		print('error: unsupported marks included')
 	logtime('')	# extra line spaces for ending of files
 
 
@@ -325,7 +334,7 @@ def main():
 	if os.path.isdir(file_or_dir): 
 		traverse(file_or_dir, '', qualify, target=('.textgrid', '.TextGrid'))
 		logtime(u'>>文件夹%s 内统计的总时长为' % file_or_dir, stdout=True)
-		print_duration(SUM_DURATION)
+		print_duration(SUM_DURATION, unit='s')
 	elif os.path.isfile(file_or_dir):
 		qualify(file_or_dir, '')
 	else:
