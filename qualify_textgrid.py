@@ -101,6 +101,12 @@ class TextgridParser(object):
 		('utf-32', (codecs.BOM_UTF32_LE, codecs.BOM_UTF32_BE)),
 		)
 
+	# for textgrid header
+	HEADER_PATTERN = (
+		re.compile('xmin = (?P<start>[\d\.]+)\s*xmax = (?P<end>[\d\.]+)\s*tiers\? <exists>'),
+		lambda x: float(x.group('end')) - float(x.group('start')),
+		)
+
 	BLOCK_PATTERNS = (
 		(re.compile('^\s*intervals \[(?P<slice>\d+)\]:'), 'slice', int),
 		(re.compile('^\s*xmin = (?P<xmin>[\d\.]+)'), 'xmin', float),
@@ -120,6 +126,7 @@ class TextgridParser(object):
 		super(TextgridParser, self).__init__()
 		self.default_coding = coding
 		self.intervals = []
+		self.original_duration_sum = 0
 
 	def reset(self):
 		self.intervals = []
@@ -127,11 +134,12 @@ class TextgridParser(object):
 	def read(self, filename):
 		self.filename = filename
 		with open(filename, 'rb') as f:
-			content = f.read()
+			raw_data = f.read()
 			# self.coding = self.code_det(content[0:10])
-			self.coding = chardet.detect(content)['encoding']
+			self.coding = chardet.detect(raw_data)['encoding']
 			try:
-				self.lines = content.decode(self.coding).encode(self.default_coding).splitlines()
+				self.content = raw_data.decode(self.coding).encode(self.default_coding)
+				self.lines = self.content.splitlines()
 			except UnicodeError, e:
 				loginfo(u'>>文件：{filename}'.format(filename=self.filename), stdout=True)
 				loginfo(u'解码时发生错误，请选择合适的文本编辑器，并以utf-8编码格式保存后，再运行此程序', stdout=True)
@@ -162,12 +170,15 @@ class TextgridParser(object):
 	def match(self, item_pattern, line):
 		return item_pattern['pattern'].match(line)
 
-	def append(self, interval):
-		pass
+	def search(self, parser, fn):
+		return fn(parser.search(self.content))
 
 	def parse(self):
 		print(u'正在解析{filename}...'.format(filename=self.filename))
-		loginfo(u'>>文件：{filename}'.format(filename=self.filename), timelog=True)
+		loginfo(u'>>文件：%s' % self.filename)
+		original_duration = self.search(*TextgridParser.HEADER_PATTERN)
+		self.original_duration_sum += original_duration
+		logtime(u'>>文件：%s\t 原始语音时长为%f秒' % (self.filename, original_duration))
 		
 		lineno = 0
 		interval = {}
@@ -268,9 +279,9 @@ def timeit(intervals):
 			category = TEXT_CATEGORY_PARSER.match(interval[TEXT_KEY].decode('utf-8')).group('category')
 			time_len = interval['xmax'] - interval['xmin']
 			if time_len < 0:
-				logtime(u'错误: 在第%d行检测到xmax的值大于xmin值' % interval['lineno'])
-				
-			assoeted_intervals[category] += time_len
+				logtime(u'错误: 在第%d行检测到xmax的值大于xmin值' % interval['lineno'], stdout=True)
+			else:
+				assoeted_intervals[category] += time_len
 		except KeyError, e:
 			assoeted_intervals[category] = time_len
 		except AttributeError, e:
@@ -324,7 +335,8 @@ def traverse(src_dir, dst_dir, fn, target='.txt'):
 					dst_file = os.path.join(dst_dir, src_file[src_dir_len:])	# should not use replace
 					fn(src_file, dst_file)
 				except Exception as e:
-					pass
+					print e
+					print("Unable to process %s" % src_file)
 
 def main():
 	file_or_dir = sys.argv[1]
@@ -333,8 +345,8 @@ def main():
 
 	if os.path.isdir(file_or_dir): 
 		traverse(file_or_dir, '', qualify, target=('.textgrid', '.TextGrid'))
-		logtime(u'>>文件夹%s 内统计的总时长为' % file_or_dir, stdout=True)
-		print_duration(SUM_DURATION, unit='s')
+		logtime(u'>>文件夹%s 内统计的总时长为\t 原始数据总时长为%f小时' % (file_or_dir, tp.original_duration_sum/3600.0), stdout=True)
+		print_duration(SUM_DURATION, unit='h')
 	elif os.path.isfile(file_or_dir):
 		qualify(file_or_dir, '')
 	else:
@@ -344,5 +356,5 @@ def main():
 
  
 if __name__ == '__main__':
-	tp = TextgridParser()
+	tp = TextgridParser()	# to avoid initializing multiple times
 	main()
