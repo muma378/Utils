@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import re
 from sets import Set
 import emotions
 
 LANGUAGE = emotions.KR
-HEADER = "Extracted Lines For {key}\n"
+SEPARATORS = emotions.KR_SEPARATORS
+HEADER = ">>Extracted Lines For {key}\n"
+
 
 # unable to find the leaf finally
 class AstaryException(Exception):
@@ -24,9 +27,9 @@ def cultivate(corpus):
 def branching(tree, word, leaf):
 	root = tree
 	end = len(word)-1
-	for i, char in enumerate(word):
+	for i, letter in enumerate(word):
 		# given a leaf if it arrives at the end else a new brach
-		root = root.setdefault(char, {} if i<end else {None: leaf})
+		root = root.setdefault(letter, {} if i<end else {None: leaf})
 
 # find a leaf according to the path(a generator for string)
 def climb(tree, path):
@@ -35,27 +38,31 @@ def climb(tree, path):
 		for i, milestone in enumerate(path, start=1):
 			branch = branch[milestone]
 	except KeyError, e:
-		if not branch.get(None):
-			raise AstaryException('Unable to find the leaf.')
-	# arrives at the end
-	return branch[None]
+		pass
+	if not branch.get(None):
+		raise AstaryException('Unable to get the leaf.')
+	else:
+		# arrives at the end
+		return branch[None]
 
 # extracts lines matched the tree in to the dict extracted
 def extract_matched(filename, tree, extracted):
+	print("Reading " + filename + " now...")
 	with open(filename, 'r') as f:
-		for line in f:
-			i = 0
-			while i < len(line):
-				if tree.get(line[i]):		# the entry
-					try:
-						key = climb(tree, line[i:])
-						extracted.setdefault(key, Set()).add(line.strip())
-						i += len(key)
-					except AstaryException, e:
-						i += 1
-				else:
+		for paragraph in f:
+			for line in re.split(SEPARATORS, paragraph):
+				line = line.strip()
+				i = 0
+				while i < len(line):
+					if tree.get(line[i]):		# the entry
+						try:
+							key = climb(tree, line[i:])
+							extracted.setdefault(key, Set()).add(line)
+							i += len(key) - 1
+						except AstaryException, e:
+							pass
 					i += 1
-				
+
 	return extracted
 
 def write(filename, extracted):
