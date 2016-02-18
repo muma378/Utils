@@ -19,5 +19,7 @@ def expensive_function():
         i = x ^ x ^ x
     return 'some result!'
  
-# prints "expensive_function took 0.72583088875 seconds"
-result = expensive_function()
+if __name__ == '__main__':
+    # prints "expensive_function took 0.72583088875 seconds"
+    result = expensive_function()
+     
