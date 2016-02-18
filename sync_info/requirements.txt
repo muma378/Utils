@@ -1,0 +1,6 @@
+et-xmlfile==1.0.1
+jdcal==1.2
+lxml==3.5.0
+openpyxl==2.3.3
+wheel==0.26.0
+wsgiref==0.1.2
