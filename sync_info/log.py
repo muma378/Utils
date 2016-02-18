@@ -7,7 +7,7 @@ class LogHandler(object):
 		super(LogHandler, self).__init__()
 		self.filename = filename
 		self.stdout = stdout
-		self.fp = open(filename, 'w')
+		self.fp = open(filename, 'w', 0)
 
 	def __del__(self):
 		self.fp.close()

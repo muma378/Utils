@@ -32,7 +32,7 @@ DETAILS_KEY = 'details'
 SUMMARY_EDIT_COLS = string.ascii_uppercase[3:14]	# D ~ N
 
 
-logger = log.LogHandler('sync.log', stdout=True)
+logger = log.LogHandler('sync.log', stdout=False)
 
 
 def connect(url, timeout=10, count=3, coding='utf-8'):
@@ -195,23 +195,48 @@ def summarize(summary):
 			
 	summary_xlsx = SUMMARY_TEMPLATE.replace('.xltx', '.xlsx')
 	wb.save(summary_xlsx)
-	logger.info('summary was written to %s successfully' % summary_xlsx)
+	logger.info('summary has been written to %s successfully' % summary_xlsx)
 			
-
+# [['G0151', '46.69 M', u'正常', '133', '--', u'合格', '--', '01/05 19:16:26'], 
 def itemize(detail):
-	pass
+	logger.info('writing to %s now...' % DETAILS_EXCEL)
+	title = [u'目录名称', u'大小', u'状态', u'文件量', u'外包商质检', u'质检', u'验收', u'最后上传时间']
+	wb = px.Workbook(write_only=True)
 
+	sheets_order = sorted(detail.keys())
+	for project_id in sheets_order:
+		try:
+			sheet_title = naming.get(int(project_id), project_id)
+		except ValueError, e:
+			logger.error('unable to get the project key for %s' % project_id)
+			continue
 
+		ws = wb.create_sheet()
+		ws.title = sheet_title
+		ws.append(title)
+		for row in detail[project_id]:
+			try:
+				ws.append(row)
+			except TypeError, e:
+				logger.error('unable to write %s in excel file' % str(row))
+
+	wb.save(DETAILS_EXCEL)
+	logger.info('detail has been written to %s successfully' % DETAILS_EXCEL)
+
+@timefunc
 def sync(url):
+	# to get the list of projects
 	projects_list = get_projects_list(url)
 
+	# to extract infomation about each project and statistics
 	data = {SUMMARY_KEY: {}, DETAILS_KEY: {}}
 	crawl_info(projects_list, data)
 
+	# to write the info into excel files respectively
 	summarize(data[SUMMARY_KEY])
 	itemize(data[DETAILS_KEY])
 
 
 if __name__ == '__main__':
 	sync('http://v-prj-002.cloudapp.net/file/')
-	print 'Success'
+	print 'Succeed'
