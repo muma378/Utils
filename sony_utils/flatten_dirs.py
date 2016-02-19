@@ -3,7 +3,6 @@ import os
 import sys
 import re
 import shutil
-from traverse import traverse
 
 # Owl1-300_1_4.418_10.820.txt
 NAME_PATTERN = '^(?P<identity>[a-zA-Z]+)(?P<start>\d+)-\d+_(?P<index>\d+)_?[0-9._]*\.(?P<type>(txt)|(wav))$'
