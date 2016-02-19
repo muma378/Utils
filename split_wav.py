@@ -11,7 +11,7 @@ MILLION = 1000000.0
 CMD_TEMPLATE = ('' if sys.platform=='win32' else './') + 'cut.exe "{src_file}" "{dst_file}" {start} {end}'
 FRAGMENT_NAME_TEMPLATE = '_{marker}{index}.'
 AUDIO_SUFFIX = '.wav'
-IDENTIFIER_PATTERN = 'Task\d Revision (?P<identifier>[a-zA-Z]+)\W.*'
+IDENTIFIER_PATTERN = 'Task\d(?P<identifier>[a-zA-Z]+)\W.*'
 DEFAULT_INDEX = 0
 
 def time_convert(time_str):
