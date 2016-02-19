@@ -25,8 +25,10 @@ VALID_WORLD = u'合格'
 VALID_START_INDEX = 4 	# index starts to stand for valid or not  
 SIZE_COL_INDEX = 3 # index of column to represent the size of dir in a project
 EXCEL_ID_INDEX = 1 # index of the field of id in summary.xltx
-SUMMARY_TEMPLATE = os.path.join(os.getcwd(), 'Summary.xltx')
-DETAILS_EXCEL = os.path.join(os.getcwd(), 'Details.xlsx')
+BASE_DIR = os.getcwd()
+SUMMARY_TEMPLATE = os.path.join(BASE_DIR, 'templates', 'Summary.xltx')
+SUMMARY_EXCEL = os.path.join(BASE_DIR, 'Summary.xlsx')
+DETAILS_EXCEL = os.path.join(BASE_DIR, 'Details.xlsx')
 SUMMARY_KEY = 'summary'
 DETAILS_KEY = 'details'
 SUMMARY_EDIT_COLS = string.ascii_uppercase[3:14]	# D ~ N
@@ -154,7 +156,6 @@ def stat(info):
 	summary_list = [d['date'], d['count']]+d['over450']+d['bet400and450']+d['under400']
 	return summary_list
 
-@timefunc
 def crawl_info(projects_list, data):
 	queue = Queue.Queue()
 	out_queue = Queue.Queue()
@@ -193,9 +194,8 @@ def summarize(summary):
 		elif row_index > 2:
 			logger.error('field of id in row %d is not a long or an integer' % row_index)
 			
-	summary_xlsx = SUMMARY_TEMPLATE.replace('.xltx', '.xlsx')
-	wb.save(summary_xlsx)
-	logger.info('summary has been written to %s successfully' % summary_xlsx)
+	wb.save(SUMMARY_EXCEL)
+	logger.info('summary has been written to %s successfully' % SUMMARY_EXCEL)
 			
 # [['G0151', '46.69 M', u'正常', '133', '--', u'合格', '--', '01/05 19:16:26'], 
 def itemize(detail):
@@ -226,12 +226,15 @@ def itemize(detail):
 @timefunc
 def sync(url):
 	# to get the list of projects
+	print('connecting to the server %s...' % url)
 	projects_list = get_projects_list(url)
 
 	# to extract infomation about each project and statistics
+	print('extracting information...')
 	data = {SUMMARY_KEY: {}, DETAILS_KEY: {}}
 	crawl_info(projects_list, data)
 
+	print('writing to summary.xlsx and details.xlsx...')
 	# to write the info into excel files respectively
 	summarize(data[SUMMARY_KEY])
 	itemize(data[DETAILS_KEY])
