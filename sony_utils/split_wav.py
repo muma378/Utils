@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+# split_wav.py - usage: python split_wav.py root_dir
+# split big wav as the breakpoint listed in the text with a similar name
+# and rename files with specified identifier
+# author: Xiaoyang <xiaoyang0117@gmail.com>
+# date: 2016.02.23
 import os
 import sys
 import re

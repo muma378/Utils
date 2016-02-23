@@ -1,3 +1,9 @@
+# list_all.py - usage: python list_all.py root_dir
+# choose the directory which contains a bunch of text with specified name, 
+# then extract all text into a file named list_all.txt
+# author: Xiaoyang <xiaoyang0117@gmail.com>
+# date: 2016.02.05
+
 import os
 import sys
 import re

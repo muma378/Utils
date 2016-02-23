@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# flatten_dirs.py - usage: python flatten_dirs.py root_dir
+# extract files in all subdirectories and flat them in order, (while highlight files containing marks)
+# author: Xiaoyang <xiaoyang0117@gmail.com>
+# date: 2016.02.23
 import os
 import sys
 import re
