@@ -116,7 +116,7 @@ def retrive(queue, data):
 	counter = 0
 	try:
 		while True:
-			dirname, info = queue.get(timeout=10)
+			dirname, info = queue.get(timeout=60)
 			# logger.info(dirname)
 			# logger.info(str(info))
 			# extract info for a project

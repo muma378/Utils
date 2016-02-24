@@ -42,7 +42,7 @@ def highlight(flatten_dir):
 			if f.read().find(sign) != -1:
 				new_name = os.path.join(flatten_dir, t.replace('_', '_'+mark+'_'))
 				shutil.move(abs_path, new_name)
-				# shutil.move(homo_wav(abs_path), homo_wav(new_name))
+				shutil.move(homo_wav(abs_path), homo_wav(new_name))
 
 
 def traverse(src_dir, dst_dir, fn, target='.wav'):
