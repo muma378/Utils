@@ -63,7 +63,7 @@ def main():
 	dst_root = os.path.join(src_root, 'flatten')
 	if not os.path.exists(dst_root):
 		os.makedirs(dst_root)
-	# traverse(src_root, dst_root, flatten, target='')
+	traverse(src_root, dst_root, flatten, target='')
 	highlight(dst_root)
 
 if __name__ == '__main__':

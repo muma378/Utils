@@ -115,8 +115,8 @@ def merge_sort(dir_group, ref, identifier, dst_dir):
 				mv(seq, src_path, indexes.pop(0))
 
 	if ref:
-		f.write('***********'+identifier+':'+str(dir_group)+"***********\n")
 		with open('diff.txt', 'a') as f:
+			f.write('***********'+identifier+':'+str(dir_group)+"***********\n")
 			f.write(">>dirs not listed in excel:\n")
 			f.write(str(dismatched))
 			f.write("\n>>text listed but not existed:\n")				

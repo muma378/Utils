@@ -19,6 +19,7 @@ from configure import task_dict as naming
 import log
 from timeit import timefunc
 
+RETRIVE_BLOCK_TIMEOUT = 20
 WORKER_NUM = 16
 FIELDS_NUM = 8
 VALID_WORLD = u'合格'
@@ -77,7 +78,7 @@ class ProjectInfoCrawler(threading.Thread):
 		while True:
 			try:
 				dirname, url = self.queue.get(timeout=30)
-			
+				
 				doc = lxml.html.document_fromstring(connect(url, timeout=120))
 				items = doc.xpath('//tbody/tr')
 				project_info = []
@@ -100,7 +101,7 @@ class ProjectInfoCrawler(threading.Thread):
 					except (ValueError, IndexError), e:
 						content = re.sub('\s{2,}', '\t', item.text_content()).encode(self.coding)
 						logger.error('illegal row when parsing %s: %s' % (dirname, content))
-				
+				print url
 				self.out_queue.put((dirname, project_info))
 			except ValueError, e:	# response == None
 				logger.error('unable to parse directory %s, ignored' % dirname)
@@ -116,7 +117,7 @@ def retrive(queue, data):
 	counter = 0
 	try:
 		while True:
-			dirname, info = queue.get(timeout=60)
+			dirname, info = queue.get(timeout=RETRIVE_BLOCK_TIMEOUT)
 			# logger.info(dirname)
 			# logger.info(str(info))
 			# extract info for a project

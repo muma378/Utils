@@ -17,6 +17,7 @@ CMD_TEMPLATE = ('' if sys.platform=='win32' else './') + 'cut.exe "{src_file}" "
 FRAGMENT_NAME_TEMPLATE = '_{marker}{index}.'
 AUDIO_SUFFIX = '.wav'
 IDENTIFIER_PATTERN = 'Task\d(?P<identifier>[a-zA-Z]+)\W.*'
+# IDENTIFIER_PATTERN = '(?P<identifier>[a-zA-Z]+)[\d-]+'
 DEFAULT_INDEX = 0
 
 def time_convert(time_str):
@@ -66,8 +67,8 @@ def parse(filename, target='.txt', use_similar=False):
 			if line.strip() == '':
 				continue
 			# clean before loading
-			begining, ending, text = filter(lambda x: len(x.strip())!=0, line.split('\t'))
 			try:
+				begining, ending, text = filter(lambda x: len(x.strip())!=0, line.split('\t'))
 				fragments.append((time_convert(begining), time_convert(ending), text.strip()))
 			except ValueError, e:
 				print('line %d, unable to parse line %s' % (lineno, line))
@@ -104,6 +105,7 @@ def generate(src_file, dst_dir, fragments, fragment_name, identifier):
 
 		text = fragment[-1]
 		marker = mark+'_' if text.find('<'+mark+'>')!=-1 else ''
+		# marker = '2701-3000_'
 
 		# Avia_A_1. or Avia_1.
 		name = fragment_name.format(**locals())
@@ -138,7 +140,7 @@ def guess_mark(src_file):
 	return identifier.capitalize()
 
 def traverse_adaptor(src_file, _):
-	fragments = parse(src_file, use_similar=True)
+	fragments = parse(src_file, use_similar=False)
 	identifier = guess_mark(src_file)
 	dst_dir = os.path.abspath(os.path.join(src_dir, os.path.join(identifier, identifier.lower())))
 
