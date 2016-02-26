@@ -1,0 +1,1 @@
+#!/bin/sh$ROOT_DIR=$1dirlist=(`find $ROOT_DIR -type d -regex '.*/[A-Z][a-z]*/[a-z]*$'`)for dir in ${dirlist[@]};do	find $dir -type f -regex '.*\.txt' | count -l	echo `basename dir`':'$numdone

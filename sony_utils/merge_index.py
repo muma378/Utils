@@ -75,8 +75,8 @@ def merge_sort(dir_group, ref, identifier, dst_dir):
 	homo_wav = lambda x: x.replace('.txt', '.wav')	# find the corresponding wav file
 	mark = '<' + identifier[0].upper() + '>'
 
-	# to reuse later
-	# remeber to pop the index not assign
+	# to reuse
+	# remeber to pop the index before passing the argument
 	def mv(key, src_path, index):
 		if not ref[key]:
 			ref.pop(key) # remove the item if no values contained
