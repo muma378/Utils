@@ -99,7 +99,7 @@ def parse_line(line, items):
 
 
 def generate_interval(aslice, interval_index, text=''):
-	return TEMPLATE_INTERVALS.format(interval_index=interval_index, local_xmin=aslice['xmin'], local_xmax=aslice['xmax'], text=text)
+	return TEMPLATE_INTERVALS.format(interval_index=interval_index, local_xmin=aslice['xmin'], local_xmax=aslice['xmax'], text=text.encode('utf-8'))
 
 def generate_output(filled_slices):
 	intervals_size = len(filled_slices)
