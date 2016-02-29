@@ -1,0 +1,13 @@
+<snippet>
+	<content><![CDATA[
+# ${1:filename.py} - usage: python ${1:filename.py} ${2:args}
+# ${3:description}
+# author: xiao yang <xiaoyang0117@gmail.com>
+# date: 2016.Mar.${4:date}
+
+]]></content>
+	<!-- Optional: Set a tabTrigger to define how to trigger the snippet -->
+	<tabTrigger>description</tabTrigger>
+	<!-- Optional: Set a scope to limit where the snippet will trigger -->
+	<scope>source.python</scope>
+</snippet>
