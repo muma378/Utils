@@ -19,7 +19,7 @@ from configure import task_dict as naming
 import log
 from timeit import timefunc
 
-RETRIVE_BLOCK_TIMEOUT = 20
+RETRIVE_BLOCK_TIMEOUT = 120
 WORKER_NUM = 16
 FIELDS_NUM = 8
 VALID_WORLD = u'合格'
@@ -79,7 +79,7 @@ class ProjectInfoCrawler(threading.Thread):
 			try:
 				dirname, url = self.queue.get(timeout=30)
 				
-				doc = lxml.html.document_fromstring(connect(url, timeout=120))
+				doc = lxml.html.document_fromstring(connect(url, timeout=600))
 				items = doc.xpath('//tbody/tr')
 				project_info = []
 				for item in items:
