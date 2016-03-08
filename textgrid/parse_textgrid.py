@@ -10,6 +10,7 @@
 
 import re
 import chardet
+import codecs
 from itertools import cycle
 
 from log import LogHandler
@@ -53,12 +54,24 @@ class TextgridParser(object):
 	"""translate the textgrid into a dict"""
 	# for textgrid header
 	HEADER_PATTERN = (
-		re.compile('xmin = (?P<start>[\d\.]+)\s*xmax = (?P<end>[\d\.]+)\s*tiers\? <exists>'),
-		lambda x: float(x.group('end')) - float(x.group('start')),
+		(re.compile('^xmin = (?P<xmin>[\d\.]+)'), 'xmin', float),
+		(re.compile('^xmax = (?P<xmax>[\d\.]+)'), 'xmax', float),
+		(re.compile('^tiers\? <exists>'), None, type(None)),
+		(re.compile('^size = (?P<size>\d+)'), 'size', int),
+		(re.compile('^item \[\]: '), None, type(None)),
+		)
+
+	ITEM_PATTERN = (
+		(re.compile('^\s*item \[(?P<item>)\]:'), 'item', str),
+        (re.compile('^\s*class = "(?P<class>)"'), 'class', str), 
+        (re.compile('^\s*name = "(?P<name>)"'), 'name', str),
+        (re.compile('^\s*xmin = (?P<xmin>[\d\.]+)'), 'xmin', float),
+		(re.compile('^\s*xmax = (?P<xmax>[\d\.]+)'), 'xmax', float),
+        (re.compile('^\s*intervals: size = (?P<size>\d+)'), 'size', int),
 		)
 
 	# a block stands for each interval in an item
-	BLOCK_PATTERNS = (
+	BLOCK_PATTERN = (
 		(re.compile('^\s*intervals \[(?P<slice>\d+)\]:'), 'slice', int),
 		(re.compile('^\s*xmin = (?P<xmin>[\d\.]+)'), 'xmin', float),
 		(re.compile('^\s*xmax = (?P<xmax>[\d\.]+)'), 'xmax', float),
@@ -71,25 +84,24 @@ class TextgridParser(object):
 		(re.compile('^(?P<text>.*)"\s*$'), 'text', str),
 	)
 
-	# keys for each element of the tuple in BLOCK_PATTERNS and MULTILINES_PATTERN
+	# keys for each element of the tuple in BLOCK_PATTERN and MULTILINES_PATTERN
 	PATTERN_KEYS = ('pattern', 'key', 'type')
-	# after calling self.__pack(PATTERN_KEYS, BLOCK_PATTERNS) 
-	# BLOCK_PATTERNS will be transformed into a dict as below:
-	# BLOCK_PATTERNS = (
+	# after calling self.__pack(PATTERN_KEYS, BLOCK_PATTERN) 
+	# BLOCK_PATTERN will be transformed into a dict as below:
+	# BLOCK_PATTERN = (
 	# 	{'pattern': re.compile('^\s*intervals \[(?P<slice>\d+)\]:'), 'key: 'slice', 'type': int},
 	# 	......
 	# 	)
 
-
 	def __init__(self, coding='utf-8'):
 		super(TextgridParser, self).__init__()
 		self.default_coding = coding
-		self.intervals = []
+		self.lineno = 0
+		self.data = {}
 		self.original_duration_sum = 0
 
 	def __reset(self):
-		self.intervals = []
-
+		self.data = {}
 
 	def read(self, filename):
 		self.filename = filename
@@ -101,11 +113,12 @@ class TextgridParser(object):
 		with open(self.filename, 'rb') as f:
 			raw_data = f.read()
 			self.coding = chardet.detect(raw_data)['encoding']
+			# self.coding = self.__code_det(raw_data[0:10])
 			try:
 				self.content = raw_data.decode(self.coding).encode(self.default_coding)
 				self.lines = self.content.splitlines()
 			except UnicodeError, e:
-				logger.info('error: unable to decode file %s, please open with a text editor and save it with encoding utf-8' % self.filename)
+				logger.error('unable to decode file %s, please open with a text editor and save it with encoding utf-8' % self.filename)
 				raise e
 
 	# auxiliary method to assemble tuples with corresponding keys
@@ -127,33 +140,42 @@ class TextgridParser(object):
 			interval.update({ ip['key']: ip['type'](ip['pattern'].match(line).group(ip['key'])) }) 
 		return interval
 
-	# only works with BLOCK_PATTERNS
+	# only works with BLOCK_PATTERN
 	def __match(self, item_pattern, line):
 		return item_pattern['pattern'].match(line)
 
 	# only works with tuples like HEADER_PATTERN
-	def __search(self, parser, fn):
-		return fn(parser.search(self.content))
+	# def __search(self, parser, fn):
+		# return fn(parser.search(self.content))
 
-	def parse_head(self):
-		original_duration = self.__search(*TextgridParser.HEADER_PATTERN)
-		self.original_duration_sum += original_duration
-		logger.info('corresponding audio last %f second in total' %  original_duration)
+	# def parse_header(self):
+	# 	original_duration = self.__search(*TextgridParser.HEADER_PATTERN)
+	# 	self.original_duration_sum += original_duration
+	# 	logger.info('corresponding audio last %f second in total' %  original_duration)
+
+	def parse(self):
+		self.lineno += 1
+		head_iter = CycleIterator(self.__pack(TextgridParser.PATTERN_KEYS, TextgridParser.HEADER_PATTERN))
+		for line in self.lines:
+			pass
+
+	def parse_iter(self, line, iterator, parent_iter):
+		if self.__match(parent_iter.head(), line):
+			raise ValueError
+
 
 	def parse_blocks(self):		
-		self.__reset()
-		lineno, interval = 0, {}
+		lineno, interval, intervals = 0, {}, []
 
 		def block_ends():
 			interval['lineno'] = lineno
-			self.intervals.append(interval)
+			intervals.append(interval)
 			interval = {}
 
 		# iterator for MULTILINES_PATTERN
 		mp_iter = CycleIterator(self.__pack(TextgridParser.PATTERN_KEYS, TextgridParser.MULTILINES_PATTERN))
-		
 		# iterator for BLOCK_PATTERN
-		bp_iter = CycleIterator(self.__pack(TextgridParser.PATTERN_KEYS, TextgridParser.BLOCK_PATTERNS))
+		bp_iter = CycleIterator(self.__pack(TextgridParser.PATTERN_KEYS, TextgridParser.BLOCK_PATTERN))
 		item_pattern = bp_iter.next()
 
 		for line in self.lines:
@@ -162,7 +184,7 @@ class TextgridParser(object):
 			# therefore, reset the block parsing once a line was matched to the begining pattern
 			# but unmatched to the current one.
 			if not bp_iter.begins() and self.__match(bp_iter.head(), line):
-				logger.info('error：unable to parse line %d, ignored' % (lineno-1))
+				logger.error('unable to parse line %d, ignored' % (lineno-1))
 				interval, item_pattern = {}, bp_iter.reset()
 
 			# to match the pattern one by one until it ends
@@ -172,25 +194,36 @@ class TextgridParser(object):
 				# if the end of block was matched
 				# block ends here for most situation
 				if bp_iter.ends():
-					block_ends()
+					interval['lineno'] = lineno
+					intervals.append(interval)
+					interval = {}
 
 			# when a text existed in multiple lines
+			elif bp_iter.ends():
+					# match the begining of text in multi-lines
+					if self.__match(mp_iter.head(), line):
+						self.__update(interval, mp_iter.head(), line)
+						continue # should not to call the next block pattern
+
+					# match the pattern of end line
+					# block also may end here for multiple lines
+					elif self.__match(mp_iter.tail(), line): 
+						self.__update(interval, mp_iter.tail(), line, append=True)
+						interval['lineno'] = lineno
+						intervals.append(interval)
+						interval = {}
+
+					# match the pattern without quotes
+					else:
+						# append the middle part of the text
+						self.__update(interval, mp_iter.index(1), line, append=True)
+						continue
 			else:
-				# match the begining of text in multi-lines
-				if self.__match(mp_iter.head(), line):
-					self.__update(interval, mp_iter.head(), line)
-					continue # should not to call the next block pattern
-
-				# match the pattern of end line
-				# block also may end here for multiple lines
-				elif self.__match(mp_iter.tail(), line): 
-					self.__update(interval, mp_iter.tail(), line, append=True)
-					block_ends()
-
-				# match the pattern without quotes
-				else:
-					# append the middle part of the text
-					self.__update(interval, mp_iter.index(1), line, append=True)
-					continue
+				# does not match anything
+				logger.error('unable to parse line %d, ignored' % (lineno-1))
+				continue
 			
 			item_pattern = bp_iter.next()	# match the next pattern
+
+		return intervals
+		

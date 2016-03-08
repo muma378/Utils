@@ -12,7 +12,7 @@ class TextgridParserTestCase(unittest.TestCase):
 	def test_read(self):
 		filenames = ('temp1.txt', 'temp2.txt', 'temp3.txt', 'temp4.txt')
 		raw_data = ('hello,test', u'测试utf-8', u'测试utf-16-le', u'测试utf-16-be')
-		codings = ('ascii', 'utf-8', 'utf-16-le', 'utf-16-be')
+		codings = ('ascii', 'utf-8', 'utf-16', 'gb2312')
 
 		def generate_files(filename, raw_data, coding):
 			with open(filename, 'w') as f:
@@ -21,8 +21,7 @@ class TextgridParserTestCase(unittest.TestCase):
 		for i in range(len(raw_data)):
 			generate_files(filenames[i], raw_data[i], codings[i])	
 			self.tp.read(filenames[i])
-			self.assertEqual(self.tp.lines[0], raw_data[i].encode('utf-8'))
-			# self.assertEqual(self.tp.coding, codings[i])
+			# self.assertEqual(self.tp.content, raw_data[i].encode('utf-8'))
 			os.remove(filenames[i])
 
 
@@ -30,15 +29,94 @@ class TextgridParserTestCase(unittest.TestCase):
 		raw_data = """        intervals [3]:
             xmin = 2.29 
             xmax = 6.720125 
-            text = "1这几天嘛我不是跟你说过我有个很好的以前初中有个很好的朋友嘛" 
+            text = "1测试单行" 
 		"""
-		with patch('TextgridParser.lines', new_callable=PropertyMock) as mock_lines:
+		with patch('parse_textgrid.TextgridParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
 			mock_lines.return_value = raw_data.splitlines()
-			self.tp.parse_blocks()
-			interval = self.tp.intervals[0]
-			import pdb;pdb.set_trace()
+			interval = self.tp.parse_blocks()[0]
 			self.assertEqual(interval['slice'], 3)
 			self.assertEqual(interval['xmin'], 2.29)
 			self.assertEqual(interval['xmax'], 6.720125)
-			self.assertEqual(interval['text'], u'1这几天嘛我不是跟你说过我有个很好的以前初中有个很好的朋友嘛')
+			self.assertEqual(interval['text'], u'1测试单行'.encode('utf-8'))
+
+	def test_parse_multilines(self):
+		raw_data = """        intervals [3]:
+            xmin = 2.29 
+            xmax = 6.720125 
+            text = "1测试多行
+            第二行
+            第三行" 
+		"""
+		with patch('parse_textgrid.TextgridParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
+			mock_lines.return_value = raw_data.splitlines()
+			interval = self.tp.parse_blocks()[0]
+			self.assertEqual(interval['text'], u'1测试多行\
+            第二行\
+            第三行'.encode('utf-8'))
+
+	def test_incorrect_block(self):
+		raw_data = """        intervals [3]:
+            xmin = 2.29 
+            xmax = 6.720125 
+            text = "1测试多行
+            第二行
+		"""
+		with patch('parse_textgrid.TextgridParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
+			mock_lines.return_value = raw_data.splitlines()
+			intervals = self.tp.parse_blocks()
+			self.assertEqual(len(intervals), 0)
+
+	def test_ignore_incorrect(self):
+		raw_data = """        intervals [3]:
+            xmin = 2.29 
+            xmax = 6.720125 
+            text = "1测试多行
+        intervals [4]:
+            xmin = 0
+            xmax = 6.720125 
+            text = "1测试"
+		"""
+		with patch('parse_textgrid.TextgridParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
+			mock_lines.return_value = raw_data.splitlines()
+			interval = self.tp.parse_blocks()[0]
+			self.assertEqual(interval['text'], u'1测试'.encode('utf-8'))
+
+	def test_blank_value(self):
+		raw_data = """        intervals [3]:
+            xmin = 2.29 
+            xmax =  
+            text = "1测试"
+		"""
+		with patch('parse_textgrid.TextgridParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
+			mock_lines.return_value = raw_data.splitlines()
+			intervals = self.tp.parse_blocks()
+			self.assertEqual(len(intervals), 0)
+
+	def test_multi_blocks(self):
+		raw_data = """        intervals [3]:
+            xmin = 2.29 
+            xmax = 6.720125 
+            text = "1第一块"
+        intervals [4]:
+            xmin = 0
+            xmax = 6.720125 
+            text = "1第二块"
+		"""
+		with patch('parse_textgrid.TextgridParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
+			mock_lines.return_value = raw_data.splitlines()
+			intervals = self.tp.parse_blocks()
+			self.assertEqual(len(intervals), 2)
+
+	def test_parse_header(self):
+		raw_data = """File type = "ooTextFile"
+Object class = "TextGrid"
+
+xmin = 0 
+xmax = 601.551125 
+tiers? <exists> 
+size = 1 """
+		with patch('parse_textgrid.TextgridParser.content', new_callable=PropertyMock, create=True) as mock_content:
+			mock_content.return_value = raw_data
+			# self.tp.parse_header()
+			# self.assertEqual(self.tp.original_duration_sum, 601.551125)
 
