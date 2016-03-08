@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# parse_textgrid.py - 
+# parse_textgrid.py - usage:
 	# tp = TextgridParser();
 	# tp.read(src_file);
 	# tp.parse();
@@ -106,7 +106,7 @@ class TextgridParser(object):
 	def read(self, filename):
 		self.filename = filename
 		try:
-			logger.info('processing file: %s' % filename.decode('gb2312'))
+			logger.info('processing file: %s' % filename.decode('gb2312').encode('utf-8'))
 		except UnicodeDecodeError, e:
 			logger.info('processing file ...')
 
@@ -220,7 +220,7 @@ class TextgridParser(object):
 						continue
 			else:
 				# does not match anything
-				logger.error('unable to parse line %d, ignored' % (lineno-1))
+				# logger.error('unable to parse line %d, ignored' % (lineno-1))
 				continue
 			
 			item_pattern = bp_iter.next()	# match the next pattern

@@ -1,5 +1,6 @@
 import wave
 import os
+import sys
 from traverse import traverse
 
 def pcm2wav(srcfn, dstfn):
@@ -17,4 +18,6 @@ def pcm2wav(srcfn, dstfn):
     wavf.close()
 
 
-traverse('filtered', 'converted', pcm2wav, target='.pcm')
+if __name__ == '__main__':
+    original = sys.argv[1]
+    traverse(original, 'converted', pcm2wav, target='.pcm')

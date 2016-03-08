@@ -26,7 +26,7 @@ def split(items, audiofile):
 			
 			cmd = CMD_TEMPLATE.format(src_file=audiofile, dst_file=dst_file, start=interval['xmin'], end=interval['xmax'])
 			subprocess.check_call(cmd, shell=True)
-			with open(dst_file.replace('.mp3', '.txt'), 'w') as f:
+			with open(dst_file.replace('.wav', '.txt'), 'w') as f:
 				f.write(interval['text'][1:])
 
 
