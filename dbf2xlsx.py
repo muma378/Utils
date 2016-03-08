@@ -23,10 +23,14 @@ FIELDS_TEXT = {'W19020104': u'土压 下', 'W19020102': u'土压 左', 'W1902010
 SRC_SUFFIX = '.dbf'
 DST_SUFFIX = '.xlsx'
 
-# NAME_PATTERN = '.*/database/process/p(?P<ring_no>\d+)\.dbf'
-NAME_PATTERN = '.*\\\\database\\\\process\\\\p(?P<ring_no>\d+)\.dbf'
+UNIX_NAME_PATTERN = '.*/database/process/p(?P<ring_no>\d+)\.dbf'
+WIN_NAME_PATTERN = '.*\\\\database\\\\process\\\\p(?P<ring_no>\d+)\.dbf'
+
+NAME_PATTERN = WIN_NAME_PATTERN if os.name == 'nt' else UNIX_NAME_PATTERN
 RING_TITLE = '环号'
+# keys in settings file
 JSON_KEYS = ["check", "average", "text", "append"]
+# corresponding ordered keys in settings file
 OA_KEY = 'ordered_average'
 OT_KEY = 'ordered_text'
 OAP_KEY = 'ordered_append'
@@ -146,6 +150,7 @@ def process(filepath, settings):
 	xlsx_list = []
 	# row index and data
 	print("Filtering data now")
+
 	for ri, record in enumerate(t.records):
 		try:
 			for attr in settings['check'].values():
@@ -161,9 +166,11 @@ def process(filepath, settings):
 
 	n_del, n_save = len(t.deleted), len(xlsx_list)
 	print('Processing finished, %d in total, %d rows are removed, %d rows are saved.' % (n_del+n_save, n_del, n_save))
-	gen_xlsx(xlsx_list, filepath, settings)
-	
-	fields_avg = [ v / n_save for v in fields_avg ]
+	if n_save != 0:
+		gen_xlsx(xlsx_list, filepath, settings)
+		fields_avg = [ v / n_save for v in fields_avg ]
+	else:
+		fields_avg = [ '' for i in range(len(fields_avg)) ]
 	# besides, append the last values for several columns
 	for attr in settings[OAP_KEY]:
 		fields_avg.append(record[attr])
@@ -178,6 +185,7 @@ def gen_xlsx(xlsx_list, filepath, settings):
 	ws = wb.create_sheet()
 	ws.title = sheet_name
 
+	# to produce a title by looking up a sample
 	def append_header(sheet, row):
 		headers = [['', ], ['', ]]
 		for item in row:
