@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scenario>
+  <name>{capital}</name>
+    <streams>
+    <stream>
+      <streamType>color</streamType>
+      <enabled>enabled</enabled>
+      <resolution>
+        <width>1920</width>
+        <height>1080</height>
+      </resolution>
+    </stream>
+    <stream>
+      <streamType>depth</streamType>
+      <enabled>enabled</enabled>
+      <resolution>
+        <width>640</width>
+        <height>480</height>
+      </resolution>
+    </stream>
+    <stream>
+      <streamType>ir</streamType>
+      <enabled>enabled</enabled>
+      <resolution>
+        <width>640</width>
+        <height>480</height>
+      </resolution>
+    </stream>
+  </streams>
+  <stages>
+{stages}
+</scenario>
