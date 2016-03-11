@@ -31,7 +31,7 @@ gestures = [('frontal', '150', 'neutral frontal in 5 sec', 'neutral'),
 			('pitch down',),
 			('frontal',),
 			('roll left',),
-			('fronal',),
+			('frontal',),
 			('roll right',),
 			('frontal', '150', 'neutral frontal in 5 sec', 'neutral'),
 			]

@@ -28,5 +28,5 @@
     </stream>
   </streams>
   <stages>
-{stages}
+{stages}</stages>
 </scenario>
