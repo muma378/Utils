@@ -80,6 +80,13 @@ def maping(data, dims, fns):
 	return mapped_data
 
 
+def output_resuult(filename, x, coefficient, y_real):
+	y_est = coefficient.dot(x)
+	with open(filename, 'w') as f:
+		f.write('real,estimate\n')
+		for r, e in zip(y_real, y_est):
+			f.write(str(r)+','+str(e)+'\n')
+
 def compute(data):
 	y_array = np.array(data.pop(ms.Y_COL))
 	alpha_array = np.ones((1, len(y_array)))
@@ -87,6 +94,7 @@ def compute(data):
 
 	# core
 	coefficient = np.dot(np.linalg.inv(mat.dot(mat.T)), mat.dot(y_array.T))
+	output_resuult('result.csv', mat, coefficient, y_array)
 	return coefficient
 
 def fit_test(coefficient, data):
@@ -127,6 +135,7 @@ def fit_test(coefficient, data):
 	for key, val in fit_description.items():
 		print("%s\t\t:%f" % (key, val))
 	print("Processing Finished")
+
 
 def main():
 	try:
