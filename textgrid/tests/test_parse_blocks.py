@@ -3,7 +3,7 @@ import os
 import shutil
 import unittest
 from mock import patch, PropertyMock
-from parse_textgrid import TextgridParser
+from parse_blocks import TextgridBlocksParser as TextgridParser
 
 class TextgridParserTestCase(unittest.TestCase):
 	def setUp(self):
@@ -100,12 +100,16 @@ class TextgridParserTestCase(unittest.TestCase):
         intervals [4]:
             xmin = 0
             xmax = 6.720125 
-            text = "1第二块"
+            text = "2第二块"
 		"""
 		with patch('parse_textgrid.TextgridParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
 			mock_lines.return_value = raw_data.splitlines()
 			intervals = self.tp.parse_blocks()
+			# import pdb;pdb.set_trace()
 			self.assertEqual(len(intervals), 2)
+			self.assertEqual(intervals[0]['text'], u"1第一块".encode('utf-8'))
+			self.assertEqual(intervals[1]['text'], u"2第二块".encode('utf-8'))
+
 
 	def test_parse_header(self):
 		raw_data = """File type = "ooTextFile"
