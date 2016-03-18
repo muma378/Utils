@@ -50,4 +50,5 @@ class WaveReaderTestCase(unittest.TestCase):
 		self.assertEqual(sections[1].unpack()[0], 134)
 
 	def test_voice_segment(self):
-		self.wr.voice_segment(0.01, 0.01)
+		wr = WaveReader('tests/data/sample_big.wav')
+		wr.voice_segment(0.01, 0.005)

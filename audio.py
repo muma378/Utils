@@ -93,7 +93,8 @@ class Wave(object):
 			if continuous_times == offset_size:
 				borders.append(i)
 
-		print borders
+		print map(lambda x: float(x)/self.framerate, borders)
+		print len(borders)
 
 
 
