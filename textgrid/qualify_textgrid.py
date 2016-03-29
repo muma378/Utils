@@ -285,18 +285,18 @@ def timeit(intervals):
 		except KeyError, e:
 			assoeted_intervals[category] = time_len
 		except AttributeError, e:
-			print('error: did not validate the textgrid before calculating the time')	# for debugging
-			sys.exit(0)
+			continue
+			# print('error: did not validate the textgrid before calculating the time')	# for debugging
+			# sys.exit(0)
 	print_duration(assoeted_intervals)
 	return assoeted_intervals
 
-SUM_DURATION = {}
-def timestat(assoeted_duration):
+def timestat(assoeted_duration, glob_duration):
 	for key, val in assoeted_duration.items():
 		try:
-			SUM_DURATION[key] += val
+			glob_duration[key] += val
 		except KeyError, e:
-			SUM_DURATION[key] = val
+			glob_duration[key] = val
 
 TIME_UNIT = {
 	's':(1, u'秒'),
@@ -312,18 +312,23 @@ def print_duration(assoeted_duration, unit='s'):
 		sys.exit(1)
 	try:
 		for key, val in assoeted_duration.items():
-			logtime(u'%s总时长为 %f%s' % (MARKS_MEANING[key], val/divider, unit_display), stdout=True)
+			logtime(u'%s时长为 %f%s' % (MARKS_MEANING[key], val/divider, unit_display), stdout=True)
 	except KeyError, e:
 		print('error: unsupported marks included')
 	logtime('')	# extra line spaces for ending of files
 
 
+SUM_DURATION = {}
+VALI_DURATION = {}
 def qualify(src_file, _):
 	tp.read(src_file)
 	tp.parse()
+	all_durations = timeit(tp.intervals)
 	validated = validate(tp.intervals)
-	durations = timeit(validated)
-	timestat(durations)
+	validated_durations = timeit(validated)
+	# TODO: refactor here
+	timestat(all_durations, SUM_DURATION)	
+	timestat(validated_durations, VALI_DURATION)
 
 def traverse(src_dir, dst_dir, fn, target='.txt'):
 	for dirpath, dirnames, filenames in os.walk(src_dir):
@@ -346,7 +351,10 @@ def main():
 	if os.path.isdir(file_or_dir): 
 		traverse(file_or_dir, '', qualify, target=('.textgrid', '.TextGrid'))
 		logtime(u'>>文件夹%s 内统计的总时长为\t 原始数据总时长为%f小时' % (file_or_dir, tp.original_duration_sum/3600.0), stdout=True)
+		logtime(u'>>各端总时长:', stdout=True)
 		print_duration(SUM_DURATION, unit='h')
+		logtime(u'>>各端有效时长:', stdout=True)
+		print_duration(VALI_DURATION, unit='h')
 	elif os.path.isfile(file_or_dir):
 		qualify(file_or_dir, '')
 	else:
