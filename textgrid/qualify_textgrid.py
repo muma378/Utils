@@ -271,7 +271,7 @@ def validate(intervals, quiet=False):
 	return validated
 
 
-def timeit(intervals):
+def timeit(intervals, title=None):
 	assoeted_intervals = {}
 	for interval in intervals:
 		try:
@@ -288,7 +288,7 @@ def timeit(intervals):
 			continue
 			# print('error: did not validate the textgrid before calculating the time')	# for debugging
 			# sys.exit(0)
-	print_duration(assoeted_intervals)
+	print_duration(assoeted_intervals, title=title)
 	return assoeted_intervals
 
 def timestat(assoeted_duration, glob_duration):
@@ -304,7 +304,9 @@ TIME_UNIT = {
 	'h':(3600.0, u'小时')
 }
 
-def print_duration(assoeted_duration, unit='s'):
+def print_duration(assoeted_duration, unit='s', title=None):
+	if title:
+		logtime(title)
 	try:
 		divider, unit_display = TIME_UNIT[unit]
 	except KeyError, e:
@@ -323,9 +325,9 @@ VALI_DURATION = {}
 def qualify(src_file, _):
 	tp.read(src_file)
 	tp.parse()
-	all_durations = timeit(tp.intervals)
+	all_durations = timeit(tp.intervals, title=u'>>各端总时长:')
 	validated = validate(tp.intervals)
-	validated_durations = timeit(validated)
+	validated_durations = timeit(validated, title=u'>>各端有效时长:')
 	# TODO: refactor here
 	timestat(all_durations, SUM_DURATION)	
 	timestat(validated_durations, VALI_DURATION)
