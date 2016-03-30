@@ -35,8 +35,10 @@ VALUE_DIRNAME_MAP = {
 	u"平面": u"平面"
 }
 
+CODING = 'gb2312'
+
 for key, val in VALUE_DIRNAME_MAP.items():
-	VALUE_DIRNAME_MAP[key] = val.encode('gb2312')
+	VALUE_DIRNAME_MAP[key] = val.encode(CODING)
 
 def classify(info_dict, root):
 	filelist = os.listdir(root)
@@ -45,7 +47,7 @@ def classify(info_dict, root):
 		try:
 			info = info_dict[filename]
 		except KeyError, e:
-			print filename.decode('gb2312') + u" is not in the list"
+			print filename.decode(CODING) + u" is not in the list"
 			continue
 
 		try:
@@ -54,7 +56,6 @@ def classify(info_dict, root):
 				dirname = VALUE_DIRNAME_MAP[info[dir_key]]
 				filepath = os.path.join(filepath, dirname)
 		except KeyError, e:
-			# import pdb;pdb.set_trace()
 			print u"unable to recognize info " + info[dir_key] + u" for file: " + filename
 			continue
 
@@ -62,13 +63,13 @@ def classify(info_dict, root):
 			filepath = os.path.join(filepath, filename)
 			shutil.move(os.path.join(root, filename), filepath)
 		else:
-			print u"path " + filepath.decode('gb2312') + u" is not exist"
+			print u"path " + filepath.decode(CODING) + u" is not exist"
 			continue
 
 
 def construct_dirs(root, dirs_struct):
 	for sub_dir in traverse_dict(dirs_struct):
-		dirs = os.path.join(root, sub_dir.encode('gb2312'))
+		dirs = os.path.join(root, sub_dir.encode(CODING))
 		if not os.path.exists(dirs):	
 			os.makedirs(dirs)
 
