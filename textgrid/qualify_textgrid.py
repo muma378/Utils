@@ -13,7 +13,7 @@ from itertools import cycle
 import chardet
 
 RULES_PATTERNS = (
-	(re.compile('^([0-2])?(?(1)(?P<text>.+)|$)', re.UNICODE), lambda x: x.group('text') , u'错误1：第{lineno}行不是以特定数字开始或只包含数字，文本内容为“{text}”'),
+	(re.compile('^([1-4])?(?(1)(?P<text>.+)|$)', re.UNICODE), lambda x: x.group('text') , u'错误1：第{lineno}行不是以特定数字开始或只包含数字，文本内容为“{text}”'),
 	(re.compile('^(\D+)$'), lambda x: re.sub('\[[SNTPsntp]\]', '', x.group(0)), u'错误2：第{lineno}行除文本开始处外另包含数字，文本内容为“{text}”'),
 	(re.compile('((?!\[\w\]).)*$', re.UNICODE), lambda x: x.group(0), u'错误3：第{lineno}行噪音符号标识错误，包含非SNTP字符，文本内容为"{text}"'),
 	(re.compile(u'((?![【】]).)*$', re.UNICODE), lambda x: x.group(0), u'错误4：第{lineno}行包含全角括号，文本内容为"{text}"'),
@@ -21,12 +21,13 @@ RULES_PATTERNS = (
 )
 TEXT_KEY = 'text'
 
-TEXT_CATEGORY_PARSER = re.compile('^(?P<category>[0-2])\D.*', flags=re.UNICODE)
+TEXT_CATEGORY_PARSER = re.compile('^(?P<category>[1-4])\D.*', flags=re.UNICODE)
 
 MARKS_MEANING = {
-	'1': u'1-近端',
-	'2': u'2-远端',
-	'0': u'0-其他人说话',
+	'1': '1-',
+	'2': '2-',
+	'3': '3-',
+	'4': '4-'
 }
 
 
@@ -205,7 +206,6 @@ class TextgridParser(object):
 					
 			# when a text existed in multiple lines
 			elif APPEND_MODE:
-				# import pdb;pdb.set_trace()
 				if self.match(mp_iter.tail(), line): # match the pattern of end line
 					self.update(interval, mp_iter.tail(), line, APPEND_MODE)
 					interval['lineno'] = lineno
