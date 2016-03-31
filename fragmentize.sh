@@ -10,6 +10,7 @@ else
 fi
 
 for i in `seq 1 ${NUM}`;do
+    echo "generating out_"${i}".txt"
     start=$(($i * $LINES))
     sed -n ${start},$(($start + $LINES - 1))p ${FILENAME} > out_${i}.txt
 done
