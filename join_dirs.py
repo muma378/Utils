@@ -10,15 +10,14 @@ import json
 import classify as cf
 from traverse import traverse
 
-FILENAME_KEY = u'文件名'
-
 def correct_names(src_file, _):
 	filename = os.path.basename(src_file)
 	try:
 		# print os.path.relpath(src_file, root)
-		info_dict[filename][FILENAME_KEY] = os.path.relpath(src_file, root).decode('utf-8')
+		info_dict[filename][cf.FILENAME_KEY] = os.path.relpath(src_file, root).decode('utf-8')
 	except KeyError, e:
 		print u"unable to find file " + filename + u" in the info.txt "
+
 
 def main(info_txt, root):
 	traverse(root, '', correct_names, target='.jpg')

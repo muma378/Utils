@@ -35,19 +35,21 @@ VALUE_DIRNAME_MAP = {
 	u"平面": u"平面"
 }
 
-CODING = 'gb2312'
+CODING = 'utf-8'
 
 for key, val in VALUE_DIRNAME_MAP.items():
 	VALUE_DIRNAME_MAP[key] = val.encode(CODING)
 
 def classify(info_dict, root):
-	filelist = os.listdir(root)
+	filelist = get_filelist(root)
 
 	for filename in filelist:
 		try:
-			info = info_dict[filename]
+			# import pdb;pdb.set_trace()
+			basename = os.path.basename(filename)
+			info = info_dict[basename]
 		except KeyError, e:
-			print filename.decode(CODING) + u" is not in the list"
+			print basename.decode(CODING) + u" is not in the list"
 			continue
 
 		try:
@@ -60,12 +62,26 @@ def classify(info_dict, root):
 			continue
 
 		if os.path.exists(filepath):
-			filepath = os.path.join(filepath, filename)
-			shutil.move(os.path.join(root, filename), filepath)
+			new_filepath = os.path.join(filepath, basename)
+			if filename != new_filepath:
+				if os.path.exists(new_filepath):
+					print new_filepath + u" that " + filename+ u" will be moved to has already existed"
+				else:
+					print u"moved to " + new_filepath + u" from " + filename
+				shutil.move(filename, new_filepath)
 		else:
 			print u"path " + filepath.decode(CODING) + u" is not exist"
 			continue
 
+def get_filelist(root, target='.jpg'):
+	filelist = []
+	# return os.listdir(root)
+	for dirpath, dirnames, filenames in os.walk(root):
+		for filename in filenames:
+			if filename.endswith(target):
+				src_file = os.path.join(dirpath, filename)
+				filelist.append(src_file.decode(CODING))
+	return filelist
 
 def construct_dirs(root, dirs_struct):
 	for sub_dir in traverse_dict(dirs_struct):
