@@ -1,0 +1,13 @@
+--- # invoice to generate xlsx
+mail-to: xiaoyang@shujutang.com
+mail-from: xiaoyang@shujutang.com
+compress: zip
+
+products: 
+    - category: 地点
+      quantity: 2
+      rows: 100
+
+    - category: 日程
+      quantity: 1
+      rows: 500
