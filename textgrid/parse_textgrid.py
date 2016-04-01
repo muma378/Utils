@@ -102,7 +102,7 @@ class TextgridParser(object):
 	"""translate the textgrid into a dict"""
 	# for textgrid header
 	HEADER_BLOCK= (
-		# list possible next stops in sequence so that interpreter know where to match when it ends
+		# list possible next stops in sequence so that interpreter knows where to match when it ends
 		# if it doesn't match any patterns listed in the tuple, it would pop to the last entry
 		((), ('ITEM_BLOCK', ), ('ITEM_BLOCK', 'HEADER_BLOCK'), ),
 		('^xmin = (?P<xmin>[\d\.]+)', 'xmin', float),
@@ -157,6 +157,7 @@ class TextgridParser(object):
 		self.__package()
 		self.entry = self.HEADER_BLOCK
 
+	# to initialize BlockIterator and PatternManager with static variables
 	def __package(self):
 		for key, args in type(self).__dict__.items():
 			if key.endswith(self.BLOCK_SUFFIX):

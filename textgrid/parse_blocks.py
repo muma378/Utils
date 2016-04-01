@@ -80,7 +80,7 @@ class TextgridBlocksParser(object):
 	# 	)
 
 	def __init__(self, coding='utf-8'):
-		super(TextgridParser, self).__init__()
+		super(TextgridBlocksParser, self).__init__()
 		self.default_coding = coding
 		self.lineno = 0
 		self.data = {}
