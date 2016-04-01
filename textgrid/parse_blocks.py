@@ -89,12 +89,13 @@ class TextgridBlocksParser(object):
 	def __reset(self):
 		self.data = {}
 
-	def read(self, filename):
+	def read(self, filename, quiet=False):
 		self.filename = filename
-		try:
-			logger.info('processing file: %s' % filename.decode('gb2312').encode('utf-8'))
-		except UnicodeDecodeError, e:
-			logger.info('processing file ...')
+		if not quiet:
+			try:
+				logger.info('processing file: %s' % filename.decode('gb2312').encode('utf-8'))
+			except UnicodeDecodeError, e:
+				logger.info('processing file ...')
 
 		with open(self.filename, 'rb') as f:
 			raw_data = f.read()
@@ -138,9 +139,9 @@ class TextgridBlocksParser(object):
 			intervals.append(interval)
 
 		# iterator for MULTILINES_PATTERN
-		mp_iter = CycleIterator(self.__pack(TextgridParser.PATTERN_KEYS, TextgridParser.MULTILINES_PATTERN))
+		mp_iter = CycleIterator(self.__pack(TextgridBlocksParser.PATTERN_KEYS, TextgridBlocksParser.MULTILINES_PATTERN))
 		# iterator for BLOCK_PATTERN
-		bp_iter = CycleIterator(self.__pack(TextgridParser.PATTERN_KEYS, TextgridParser.BLOCK_PATTERN))
+		bp_iter = CycleIterator(self.__pack(TextgridBlocksParser.PATTERN_KEYS, TextgridBlocksParser.BLOCK_PATTERN))
 		item_pattern = bp_iter.next()
 
 		for line in self.lines:
