@@ -31,14 +31,8 @@ def target_files():
 
 # TODO: run mutiple sc at one application
 def filter_msgs(src_file, dst_file, category):
-	# TODO: rename app name for the project
-	conf = SparkConf().setMaster(settings.MASTER_URL).setAppName(settings.APP_NAME)
-	conf.setAll([("spark.eventLog.enabled", "true"), ("spark.eventLog.dir", settings.LOG_DIRECTORY)])
-
 	valid_tags = rules_interpret(settings.SYNTAX_RULES[category])
-
-	# TODO:run several textfiles in parallel
-	sc = SparkContext(conf=conf)
+	# TODO: rename app name for the project
 	rdd = sc.textFile(src_file)
 	valid_words = rdd.map(word_segment).filter(lambda pair: valid_tags(pair[1])).map(lambda x: x[0])
 	
@@ -124,6 +118,10 @@ def task_schedule(channel, method, header, body):
 
 if __name__ == '__main__':
 	rm = RecordManager()
+	conf = SparkConf().setMaster(settings.MASTER_URL).setAppName(settings.APP_NAME)
+	conf.setAll([("spark.eventLog.enabled", "true"), ("spark.eventLog.dir", settings.LOG_DIRECTORY)])
+	# TODO:run several textfiles in parallel
+	sc = SparkContext(conf=conf)
 
 	credentials = pika.PlainCredentials(settings.RABBITMQ_USERNAME, settings.RABBITMQ_PASSWORD)
 	conn_params = pika.ConnectionParameters(settings.RABBITMQ_HOST, credentials=credentials)
