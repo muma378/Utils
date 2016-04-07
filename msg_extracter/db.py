@@ -87,14 +87,19 @@ class RecordManager(object):
 			end = 0
 		return end
 
-if __name__ == '__main__':
-	# run once to initialize the database
-	rm = RecordManager()
-	try:
-		rm.create_tables()
-	except sqlite3.OperationalError, e:
-		print "tables created already"
+	def delete_record(self, pk):
+		self.cursor.execute("""DELETE FROM records WHERE id=?
+			""", (pk, ))
+		self.conn.commit()
 
-	rm.insert_record('out_1.txt', u'地点', start=100, end=300, rows=100, pk=3)
-	rm.insert_record('out_2.txt', u'日程', start=500, end=530, rows=1000, pk=4)
+# if __name__ == '__main__':
+# 	# run once to initialize the database
+# 	rm = RecordManager()
+# 	try:
+# 		rm.create_tables()
+# 	except sqlite3.OperationalError, e:
+# 		print "tables created already"
+
+# 	rm.insert_record('out_1.txt', u'地点', start=100, end=300, rows=100, pk=3)
+# 	rm.insert_record('out_2.txt', u'日程', start=500, end=530, rows=1000, pk=4)
 

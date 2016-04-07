@@ -5,9 +5,15 @@
 # date: 2016.Mar.22
 import os
 import math
+import time
 from xlsx_handle import XlsxHandler
 from db import RecordManager
 import settings
+from settings import logger
+
+class ConvertingError(Exception):
+	pass
+
 
 def create_xlsx(lines, xlsx_name, header):
 	xlsx = XlsxHandler()
@@ -61,5 +67,28 @@ def smash_merged(merge_path, rows):
 		return partitions[:-1]
 	else:
 		return partitions
-	
 
+def txt_2_xlsx(src_file, rows, category, project_id):
+	rm = RecordManager()
+	partitions = smash_merged(src_file, rows)
+	if not is_valid(partitions, rows):
+		logger.error("rows in each partitions are not equal.")
+		raise ConvertingError
+	else:
+		header = settings.XLSX_HEADERS[category]
+		xlsx_path = os.path.join(settings.SAVE_DIRECTORY, str(project_id))
+		last_end = rm.get_previous_end(project_id, category)
+		
+		retry_time = 0
+		while not last_end:
+			logger.info("retriving value for last end failed, waiting for the next lookup")
+			time.sleep(60)	# waiting for next looking up
+			retry_time += 1
+			last_end = rm.get_previous_end(project_id, category)
+			# TODO: use an alternative way to recover
+			if retry_time > 10:
+				logger.error("unable to find an avaible value for %d" % project_id)
+				raise ConvertingError
+		start = last_end + 1
+		generate_xlsxs(partitions, header, xlsx_path, category, project_id, start)
+		rm.update_record(project_id, start, start+len(partitions), rows)

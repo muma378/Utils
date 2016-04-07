@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 import os
+import log
+
+logger = log.LogHandler('schedule.log', stdout=True)
 
 PARTITION_NUM = 10
+SPARK_MASTER_URL = "spark://Yang.local:7077"
+SPARK_APP_NAME = "HUAWEI_MSG_CLASSIFIER"
 
-MASTER_URL = "spark://Yang.local:7077"
-APP_NAME = "HUAWEI_MSG_CLASSIFIER"
 DATABASE_NAME = "msg_classifier.db"
-
-
-RABBITMQ_USERNAME = "guest"
-RABBITMQ_PASSWORD = "guest"
-RABBITMQ_HOST = "localhost"
 
 RABBITMQ_CONN_CONF = {
     "host": "localhost",
@@ -25,8 +23,11 @@ RABBITMQ_SPARK = {
     "routing-key": "msg-filter",
 }
 
+RABBITMQ_MSG_QUIT = 'QUIT'
+
+FILE_INDEX_PATTERN = "^out_(\d+)\.txt"
 SOURCE_FILE_TEMPLATE = "out_{index}.txt"
-ROOT_DIRECTORY = "/Users/imac/Desktop/huawei/"  # TODO:
+ROOT_DIRECTORY = "/Users/imac/Desktop/huawei/" 
 DATA_DIRECTORY = os.path.join(ROOT_DIRECTORY, u"源数据")
 SAVE_DIRECTORY = os.path.join(ROOT_DIRECTORY, u"待处理数据")
 TEMP_DIRECTORY = os.path.join(ROOT_DIRECTORY, u"临时文件")

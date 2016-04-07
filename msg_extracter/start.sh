@@ -34,4 +34,4 @@ else
 fi
 
 echo "running ${main_spark_py} now ..."
-$SPARK_HOME/bin/spark-submit --master ${master_url} ${main_spark_py} 
+$SPARK_HOME/bin/spark-submit --master ${master_url} --py-files ./application.py,./settings.py ${main_spark_py} 
