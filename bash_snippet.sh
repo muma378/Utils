@@ -2,7 +2,7 @@
 
 
 # to count code lines in total
-find ./ -type f | grep -e ".*\.\(py\|sh\)$" | xargs -I % wc -l % | awk 'BEGIN { FS = " "; SUM = 0 }; $2=="total" { SUM += $1 }; END { print SUM }'
+find ./ -type f | grep -e ".*\.\(py\|sh\)$" | xargs -I % wc -l % | awk 'BEGIN { FS = " "; SUM = 0 }; { SUM += $1 }; END { print SUM }'
 
 find /cygdrive/g/20160222 -name list_all.txt | grep -ie 'task1.*tiger' | xargs -I % cat %| sed 's/ //g' | grep 
 
@@ -17,3 +17,5 @@ awk 'BEGIN { FS = " "; MANUAL = 0; AUTO = 0 };
     }
     END { print FILENAME, "manual: ", MANUAL, ",  auto: ", AUTO}' $file
 done
+
+find ./ -type f -name "*.txt" | xargs -I % sed -i '' -e 's/""/"/g;s/\([^\s]\)\(\[\)/\1 \2/g;s/^1//g' %
