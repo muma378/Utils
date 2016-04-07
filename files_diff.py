@@ -19,8 +19,22 @@ def diff(dir1, dir2, fn1, fn2):
 		f.write('\n'.join(result))
 
 
+def diff_one(_dir, type1, type2):
+	files =  os.listdir(_dir)
+	filenames_list1 = sorted(map(lambda x:x.replace(type1, ''), filter(lambda f: f.endswith(type1), files)))
+	filenames_list2 = sorted(map(lambda x:x.replace(type2, ''), filter(lambda f: f.endswith(type2), files)))
+
+	df = Differ()
+	result = df.compare(filenames_list1, filenames_list2)
+	with open(OUTPUT_FILE, 'w') as f:
+		f.write('\n'.join(result))
+
+
+
+
 def main():
-	diff(sys.argv[1], sys.argv[2], lambda x:x.replace('.wav', ''), lambda x:x.replace('.textgrid', ''))
+	# diff(sys.argv[1], sys.argv[2], lambda x:x.replace('.wav', ''), lambda x:x.replace('.textgrid', ''))
+	diff_one(sys.argv[1], '.wav', '.txt')
 
 
 if __name__ == '__main__':
