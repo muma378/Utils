@@ -1,7 +1,7 @@
 import os
 import sys
 import subprocess
-from parse_textgrid import TextgridParser
+from parse_blocks import TextgridBlocksParser
 
 CMD_TEMPLATE = ('' if sys.platform=='win32' else './') + 'cut.exe "{src_file}" "{dst_file}" {start} {end}'
 
@@ -47,7 +47,7 @@ def rename(items, index, filename, norm_interval):
 
 
 if __name__ == '__main__':
-	tp = TextgridParser()
+	tp = TextgridBlocksParser()
 	textfile = sys.argv[1]
 	audiofile = sys.argv[2]
 	tp.read(textfile)
