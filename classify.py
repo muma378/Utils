@@ -35,7 +35,7 @@ VALUE_DIRNAME_MAP = {
 	u"平面": u"平面"
 }
 
-CODING = 'utf-8'
+CODING = 'gb2312'
 
 for key, val in VALUE_DIRNAME_MAP.items():
 	VALUE_DIRNAME_MAP[key] = val.encode(CODING)
@@ -45,7 +45,6 @@ def classify(info_dict, root):
 
 	for filename in filelist:
 		try:
-			# import pdb;pdb.set_trace()
 			basename = os.path.basename(filename)
 			info = info_dict[basename]
 		except KeyError, e:
@@ -65,12 +64,12 @@ def classify(info_dict, root):
 			new_filepath = os.path.join(filepath, basename)
 			if filename != new_filepath:
 				if os.path.exists(new_filepath):
-					print new_filepath + u" that " + filename+ u" will be moved to has already existed"
+					print new_filepath + " that " + filename+ " will be moved to has already existed"
 				else:
-					print u"moved to " + new_filepath + u" from " + filename
+					print "moved to " + new_filepath + " from " + filename
 				shutil.move(filename, new_filepath)
 		else:
-			print u"path " + filepath.decode(CODING) + u" is not exist"
+			print "path " + filepath + " is not exist"
 			continue
 
 def get_filelist(root, target='.jpg'):
@@ -80,7 +79,7 @@ def get_filelist(root, target='.jpg'):
 		for filename in filenames:
 			if filename.endswith(target):
 				src_file = os.path.join(dirpath, filename)
-				filelist.append(src_file.decode(CODING))
+				filelist.append(src_file)
 	return filelist
 
 def construct_dirs(root, dirs_struct):
@@ -104,7 +103,11 @@ def hashing(info_txt):
 	with open(info_txt,'r') as f:
 		for line in f:
 			info = json.loads(line)
-			info_dict[info[FILENAME_KEY]] = info
+			try:
+				basename = os.path.basename(info[FILENAME_KEY])
+				info_dict[basename] = info
+			except KeyError, e:
+				print "unable to find key " + FILENAME_KEY + " in " + line
 	return info_dict
 
 def main(info_txt, root):
