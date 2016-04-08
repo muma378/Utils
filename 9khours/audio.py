@@ -46,13 +46,39 @@ class Wave(object):
 			self.unpacked_content = unpack(self._get_packfmt(), self.content)
 		return self.unpacked_content
 
+	def pack(self, frames):
+		self.content = pack(self._get_packfmt(), *frames)
+		return self.content
+
+	def partial_pack(self, frames_num, frames):
+		return pack(Wave.PACKENDIAN[sys.byteorder]+Wave.PACKTYPE[self.samplewidth]*frames_num*self.nchannels, frames)
+
+	def partial_unpack(self, frames_num, content):
+		return unpack(Wave.PACKENDIAN[sys.byteorder]+Wave.PACKTYPE[self.samplewidth]*frames_num*self.nchannels, content)
+
 	def get_duration(self):
 		return float(self.nframes)/(self.nchannels*self.framerate)
 
-	def lower_sampling(self, low_framerate):
-		step = self.framerate / low_framerate
+	def time2frames(self, duration):
+		return self.framerate * self.nchannels * duration
+
+	def frames2bytes(self, frames):
+		return frames * self.samplewidth
+
+	def time2bytes(self, duration):
+		return self.samplewidth * self.framerate * self.nchannels * duration
+
+	def bytes2frames(self, bytes):
+		return long(bytes/self.samplewidth)
+
+	def lower_sampling(self, low_framerate=8000):
+		step = int(self.framerate / low_framerate)
 		if step > 1:	# make sure the new framerate is lower than the original
 			sample = self.unpack()[0::step]
+		self.nframes = self.nframes / 2
+		self.framerate = low_framerate
+		self.header = self.header[0:2]+(self.framerate, self.nframes,)+self.header[4:]
+		self.pack(sample)
 		return sample
 
 	# this voice segmentation algorithm is based on energy estimation 
@@ -127,8 +153,8 @@ class WaveReader(Wave):
 
 	# truncate chunks if it was over the specified duration
 	def truncate(self, duration):
-		sub_section_frames = self.framerate * self.nchannels * duration
-		sub_section_bytes = sub_section_frames * self.samplewidth
+		sub_section_frames = self.time2frames(duration)
+		sub_section_bytes = self.frames2bytes(sub_section_frames)
 		total_frames, self.sections = self.nframes, []
 		index = 0
 		while total_frames > 0:
@@ -145,4 +171,53 @@ class WaveReader(Wave):
 			index += 1
 
 		return self.sections
+
+	def smart_truncate(self, duration, window=0.5, threshold=200.0):
+		window_bytes = self.time2bytes(window)
+		section_bytes = self.time2bytes(duration)
+		total_bytes = self.frames2bytes(self.nframes)
+		
+		if section_bytes > total_bytes:
+			return self.sections
+
+		self.sections = []
+		end_byte = 0
+		index = 0
+		offset_time = 0.1
+
+		window_frames = self.bytes2frames(window_bytes)
+		while end_byte < total_bytes:
+			start_byte = end_byte
+			# append the whole frames if it was below the specified duration
+			if total_bytes < start_byte + section_bytes:
+				end_byte = total_bytes
+			else:
+				offset = 0
+				end_byte = start_byte + section_bytes
+				while True:
+					# if no avaible offset found, take it 
+					if end_byte-window_bytes-offset < start_byte:
+						threshold = threshold * 2
+						offset = 0
+
+					boundary = self.content[long(end_byte-window_bytes-offset):long(end_byte-offset)]
+					packed_boundary = self.partial_unpack(window_frames, boundary)
+					abs_boundary = map(lambda x: math.fabs(x), packed_boundary)
+					
+					if sum(abs_boundary) > threshold * window_frames:
+						offset += self.time2bytes(offset_time)
+					else:
+						end_byte = long(end_byte - offset)
+						break
+ 
+ 			section_frames = self.bytes2frames(end_byte-start_byte)
+			self.sections.append( Wave(self.name_section(index), 
+				self.header[0:3]+(section_frames,)+self.header[4:],
+				self.content[start_byte:end_byte]))
+			index += 1
+
+		return self.sections
+
+
+
 
