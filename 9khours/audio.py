@@ -75,7 +75,7 @@ class Wave(object):
 		step = int(self.framerate / low_framerate)
 		if step > 1:	# make sure the new framerate is lower than the original
 			sample = self.unpack()[0::step]
-		self.nframes = self.nframes / 2
+		self.nframes = len(sample)
 		self.framerate = low_framerate
 		self.header = self.header[0:2]+(self.framerate, self.nframes,)+self.header[4:]
 		self.pack(sample)
