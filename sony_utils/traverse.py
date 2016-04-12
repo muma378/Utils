@@ -71,3 +71,16 @@ def traverse(src_dir, dst_dir, fn, target='.wav'):
 				except Exception as e:
 					print e
 					print("Unable to process %s" % src_file)
+
+def traverse_with_extra(src_dir, dst_dir, fn, target='.wav', **extra_args):
+	for dirpath, dirnames, filenames in os.walk(src_dir):
+		for filename in filenames:
+			if filename.endswith(target):
+				try:
+					src_file = os.path.join(dirpath, filename)
+					src_dir_len = len(src_dir) if src_dir.endswith(os.sep) else len(src_dir)+1
+					dst_file = os.path.join(dst_dir, src_file[src_dir_len:])	# should not use replace
+					fn(src_file, dst_file, **extra_args)
+				except Exception as e:
+					print e
+					print("Unable to process %s" % src_file)
