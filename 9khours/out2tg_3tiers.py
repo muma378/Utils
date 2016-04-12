@@ -8,6 +8,8 @@ import os
 import sys
 import codecs
 import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
 
 TEMPLATE_HEADER = """File type = "ooTextFile"
 Object class = "TextGrid"
