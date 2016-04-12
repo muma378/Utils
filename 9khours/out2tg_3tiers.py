@@ -1,10 +1,13 @@
-# *-* coding:utf8 *-*
+# -*- coding: utf-8 -*-
+# out2textgrid.py - usage: python out2textgrid.py filelist.out pcmlist.out
+# convert files genrated by computeLength.exe to textgrid (3 tiers)	
+# author: Zhao Wenjian, Xiao Yang <xiaoyang0117@gmail.com>
+# date: 2016.April.12
+
 import os
 import sys
 import codecs
 import sys
-reload(sys)
-sys.setdefaultencoding('utf-8')
 
 TEMPLATE_HEADER = """File type = "ooTextFile"
 Object class = "TextGrid"
