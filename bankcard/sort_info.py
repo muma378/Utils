@@ -8,6 +8,7 @@ from collections import OrderedDict
 
 TEXTINFO_KEY = u"文本级信息"
 CHARINFO_KEY = u"字符级信息"
+FILE_LOCATION_KEY = u"文件名"
 
 LINENO = 0
 
@@ -20,7 +21,13 @@ def loads(info_txt):
 		for line in f:
 			LINENO += 1
 			info = json.loads(line)
-			info_list.append(sort(info))
+			try:
+				info = sort(info)
+			except ValueError, e:
+				# shutil.move(info[FILE_LOCATION_KEY])
+				pass
+			else:
+				info_list.append(info)
 	return info_list
 
 # unzip list composed of dict
@@ -42,13 +49,16 @@ def sort(info):
 	char_infos = info.pop(CHARINFO_KEY)
 	card_chars = match_chars(char_infos, card_num)
 	date_chars = match_chars(char_infos, valid_date)
+	
 	if card_num:
 		if len(card_chars) == 0:
 			for key in card_num.keys():
 				INCORRECT_NUMS += 1
 				print "unable to find chars for card number: " + key
+				raise ValueError
 	else:
 		print info[u"文件名"]
+		raise ValueError
 
 	ordered_append(info, CHARINFO_KEY, (card_chars, date_chars, char_infos))
 	return info
@@ -83,21 +93,30 @@ def match_chars(char_infos, text_info):
 	if text_info:
 		for key in text_info.keys():
 			text_info_str = key
+
+		# if text_info_str == '6221887051001012076':
+		# 	import pdb;pdb.set_trace()
 		for i, char_info in enumerate(char_infos):
 			for key in char_info.keys():
 				if text_info_str.startswith(key):
 					matched = char_infos[i:i+len(text_info_str)]
 					if is_same(text_info_str, matched):
-						char_infos = char_infos[:i] + char_infos[i+len(text_info_str):]		# remove the slice 
+						try:
+							for pos in range(i, i+len(text_info_str))[::-1]:	# delete from the last
+								char_infos.pop(pos)		# remove the slice 
+						except IndexError, e:
+							break
+
 						return matched
 	return []
 
 # make sure if it was extracted correctly
 def is_same(nums, dict_list):
-	for i, d in enumerate(dict_list):
-		for key in d.keys():
-			if not nums[i] == key:
-				return False
+	if len(nums) == len(dict_list):
+		for i, d in enumerate(dict_list):
+			for key in d.keys():
+				if not nums[i] == key:
+					return False
 	return True
 
 
