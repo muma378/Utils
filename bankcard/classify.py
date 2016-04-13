@@ -40,8 +40,9 @@ CODING = 'gb2312'
 for key, val in VALUE_DIRNAME_MAP.items():
 	VALUE_DIRNAME_MAP[key] = val.encode(CODING)
 
-def classify(info_dict, root):
+def classify(info_dict, root, new_info_txt):
 	filelist = get_filelist(root)
+	new_fp = open(new_info_txt, 'w')
 
 	for filename in filelist:
 		try:
@@ -67,10 +68,16 @@ def classify(info_dict, root):
 					print new_filepath + " that " + filename+ " will be moved to has already existed"
 				else:
 					print "moved to " + new_filepath + " from " + filename
-				shutil.move(filename, new_filepath)
+					shutil.move(filename, new_filepath)
+				info[FILENAME_KEY] = new_filepath.decode(CODING)
 		else:
 			print "path " + filepath + " is not exist"
 			continue
+
+		new_fp.write(json.dumps(info, ensure_ascii=False).encode('utf-8'))
+		new_fp.write('\n')
+
+	new_fp.close()
 
 def get_filelist(root, target='.jpg'):
 	filelist = []
@@ -114,7 +121,7 @@ def main(info_txt, root):
 	info_dict = hashing(info_txt)
 	construct_dirs(root, DIRS_STRUCT)
 
-	classify(info_dict, root)
+	classify(info_dict, root, "new_info.txt")
 
 if __name__ == '__main__':
 	if len(sys.argv) != 3:
