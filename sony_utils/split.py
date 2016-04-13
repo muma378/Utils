@@ -18,11 +18,13 @@ def split_by_cols(cols_file, src_wav, dst_dir='.', name_prefix=NAME):
 			start, end = to_sec(start), to_sec(end)
 			
 			counter += 1
-			
-			dst_file = os.path.join(dst_dir, unicode(name_prefix+str(counter)))
+			dst_file = os.path.join(dst_dir, unicode(name_prefix+str(counter))).encode(DECODING)
 			# to generate the wave
 			dst_wav = dst_file + '.wav'
 			cmd = CMD_TEMPLATE.format(**locals())
+			
+			if not os.path.exists(dst_dir):
+				os.makedirs(dst_dir)
 			subprocess.check_call(cmd, shell=True)
 
 			# to generate the text
