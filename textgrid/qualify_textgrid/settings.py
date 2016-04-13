@@ -12,6 +12,7 @@ INTERVAL_KEY_XMIN = 'xmin'
 
 
 TEXT_CATEGORY_PARSER = re.compile('^(?P<category>[1-4])\D.*', flags=re.UNICODE)
+TEXT_CATEGORY_KEY = 'category'
 
 MARKS_MEANING = {
 	'1': '1-',

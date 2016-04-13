@@ -21,7 +21,7 @@ class BlockIterator(object):
 		for pattern in self.patterns:
 			yield pattern
 
-	# when returns an instance of BlockIterator, it means the block_iter in use will be replaced 
+	# when returns an instance of BlockIterator, it means the block_iter in use will be replaced now
 	# at this time, we reset the value of index
 	def _reset_if_return(fn):
 		def reset(self, *args):
