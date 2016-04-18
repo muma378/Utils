@@ -11,9 +11,11 @@
 import re
 import chardet
 from itertools import cycle
+import settings
+from settings import logger
 
-from log import LogHandler
-logger = LogHandler('textgrid_parser.log', stdout=True)
+class UpperLayerException(Exception):
+	pass
 
 
 class CycleIterator(object):
@@ -54,16 +56,16 @@ class TextgridBlocksParser(object):
 
 	# a block stands for each interval in an item
 	BLOCK_PATTERN = (
-		(re.compile('^\s*intervals \[(?P<slice>\d+)\]:'), 'slice', int),
-		(re.compile('^\s*xmin = (?P<xmin>[\d\.]+)'), 'xmin', float),
-		(re.compile('^\s*xmax = (?P<xmax>[\d\.]+)'), 'xmax', float),
-		(re.compile('^\s*text = "(?P<text>.*)"'), 'text', str),
+		(re.compile('^\s*intervals \[(?P<slice>\d+)\]:', re.UNICODE), 'slice', int),
+		(re.compile('^\s*xmin = (?P<xmin>[\d\.]+)', re.UNICODE), 'xmin', float),
+		(re.compile('^\s*xmax = (?P<xmax>[\d\.]+)', re.UNICODE), 'xmax', float),
+		(re.compile('^\s*text = "(?P<text>.*)"', re.UNICODE), 'text', unicode),
 		)
 	# for a special case that one text has multiple lines
 	MULTILINES_PATTERN = (
-		(re.compile('^\s*text = "(?P<text>.*)'), 'text', str),
-		(re.compile('^(?P<text>.*)$'), 'text', str),	# to adapt the new line
-		(re.compile('^(?P<text>.*)"\s*$'), 'text', str),
+		(re.compile('^\s*text = "(?P<text>.*)', re.UNICODE), 'text', unicode),
+		(re.compile('^(?P<text>.*)$', re.UNICODE), 'text', unicode),	# to adapt the new line
+		(re.compile('^(?P<text>.*)"\s*$', re.UNICODE), 'text', unicode),
 	)
 
 	# keys for each element of the tuple in BLOCK_PATTERN and MULTILINES_PATTERN
@@ -76,7 +78,7 @@ class TextgridBlocksParser(object):
 	# 	)
 
 	def __init__(self, coding='utf-8'):
-		super(TextgridParser, self).__init__()
+		super(TextgridBlocksParser, self).__init__()
 		self.default_coding = coding
 		self.lineno = 0
 		self.data = {}
@@ -85,23 +87,25 @@ class TextgridBlocksParser(object):
 	def __reset(self):
 		self.data = {}
 
-	def read(self, filename):
+	def read(self, filename, quiet=False):
 		self.filename = filename
-		try:
-			logger.info('processing file: %s' % filename.decode('gb2312').encode('utf-8'))
-		except UnicodeDecodeError, e:
-			logger.info('processing file ...')
+		if not quiet:
+			try:
+				logger.info('processing file: %s' % filename.decode(settings.DECODING).encode(settings.ENCODING))
+			except UnicodeDecodeError, e:
+				logger.info('processing file ...')
 
 		with open(self.filename, 'rb') as f:
 			raw_data = f.read()
 			self.coding = chardet.detect(raw_data)['encoding']
 			# self.coding = self.__code_det(raw_data[0:10])
 			try:
-				self.content = raw_data.decode(self.coding).encode(self.default_coding)
+				self.content = raw_data.decode(self.coding)
 				self.lines = self.content.splitlines()
 			except UnicodeError, e:
 				logger.error('unable to decode file %s, please open with a text editor and save it with encoding utf-8' % self.filename)
 				raise e
+		return self
 
 	# auxiliary method to assemble tuples with corresponding keys
 	# provided for those lazy people
@@ -115,7 +119,7 @@ class TextgridBlocksParser(object):
 	def __update(self, interval, item_pattern, line, append=False):
 		ip = item_pattern
 		if append:
-			# only for text
+			# only for text in multiple lines
 			interval[ip['key']] += ip['type'](ip['pattern'].match(line).group(ip['key']))
 		else:
 			# eg. interval.update('slice': int(re_parser.match(line).group('slice')))
@@ -134,9 +138,9 @@ class TextgridBlocksParser(object):
 			intervals.append(interval)
 
 		# iterator for MULTILINES_PATTERN
-		mp_iter = CycleIterator(self.__pack(TextgridParser.PATTERN_KEYS, TextgridParser.MULTILINES_PATTERN))
+		mp_iter = CycleIterator(self.__pack(TextgridBlocksParser.PATTERN_KEYS, TextgridBlocksParser.MULTILINES_PATTERN))
 		# iterator for BLOCK_PATTERN
-		bp_iter = CycleIterator(self.__pack(TextgridParser.PATTERN_KEYS, TextgridParser.BLOCK_PATTERN))
+		bp_iter = CycleIterator(self.__pack(TextgridBlocksParser.PATTERN_KEYS, TextgridBlocksParser.BLOCK_PATTERN))
 		item_pattern = bp_iter.next()
 
 		for line in self.lines:

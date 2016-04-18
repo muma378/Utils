@@ -2,7 +2,7 @@
 import os
 import re
 import unittest
-from evaluate import RulesCensor
+from censor import RulesCensor
 
 class RulesCensorTestCase(unittest.TestCase):
 	def setUp(self):

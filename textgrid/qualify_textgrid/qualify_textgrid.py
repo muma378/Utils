@@ -7,58 +7,10 @@
 import os
 import sys
 import re
-import codecs
-from itertools import cycle
-
-import chardet
 
 from parse_blocks import TextgridBlocksParser as TextgridParser
-
-
-TEXT_KEY = 'text'
-
-TEXT_CATEGORY_PARSER = re.compile('^(?P<category>[1-4])\D.*', flags=re.UNICODE)
-
-MARKS_MEANING = {
-	'1': '1-',
-	'2': '2-',
-	'3': '3-',
-	'4': '4-'
-}
-
-
-logger = None
-time_logger = None
-
-def setup(target):
-	global logger
-	global time_logger
-	if os.path.isdir(target):
-		if target.endswith('\\'):
-			target = target[:-1]
-		logfile = os.path.join(target, os.path.basename(target)+'.log')
-		timelog = os.path.join(target, 'duration.log')
-	elif os.path.isfile(target):
-		logfile = target + '.log'
-		timelog = target + '_duration.log'
-	logger = open(logfile, 'w')
-	time_logger = open(timelog, 'w')
-
-def teardown():
-	logger.close()
-	time_logger.close()
-
-def loginfo(msg, stdout=False, timelog=False):
-	if stdout:
-		print(msg)
-	logger.write((msg+os.linesep).encode('utf-8'))
-	if timelog:
-		logtime(msg)	#syntax sugar
-
-def logtime(msg, stdout=False):
-	if stdout:
-		print(msg)
-	time_logger.write((msg+os.linesep).encode('utf-8'))
+from censor import RulesCensor
+from calculagraph import Calculagraph, CategoricalCalculagraph
 
 
 
@@ -95,26 +47,7 @@ def validate(intervals, quiet=False):
 	return validated
 
 
-def timeit(intervals, title=None):
-	assoeted_intervals = {}
-	for interval in intervals:
-		try:
-			# assume it was validated before
-			category = TEXT_CATEGORY_PARSER.match(interval[TEXT_KEY].decode('utf-8')).group('category')
-			time_len = interval['xmax'] - interval['xmin']
-			if time_len < 0:
-				logtime(u'错误: 在第%d行检测到xmax的值大于xmin值' % interval['lineno'], stdout=True)
-			else:
-				assoeted_intervals[category] += time_len
-		except KeyError, e:
-			# import pdb;pdb.set_trace()
-			assoeted_intervals[category] = time_len
-		except AttributeError, e:
-			continue
-			# print('error: did not validate the textgrid before calculating the time')	# for debugging
-			# sys.exit(0)
-	print_duration(assoeted_intervals, title=title)
-	return assoeted_intervals
+
 
 def timestat(assoeted_duration, glob_duration):
 	for key, val in assoeted_duration.items():
@@ -169,6 +102,7 @@ def traverse(src_dir, dst_dir, fn, target='.txt'):
 				except Exception as e:
 					print e
 					print("Unable to process %s" % src_file)
+
 
 def main():
 	file_or_dir = sys.argv[1]

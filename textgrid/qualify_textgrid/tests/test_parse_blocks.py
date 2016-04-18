@@ -26,7 +26,7 @@ class TextgridParserTestCase(unittest.TestCase):
 
 
 	def test_parse_blocks(self):
-		raw_data = """        intervals [3]:
+		raw_data = u"""        intervals [3]:
             xmin = 2.29 
             xmax = 6.720125 
             text = "1测试单行" 
@@ -37,10 +37,10 @@ class TextgridParserTestCase(unittest.TestCase):
 			self.assertEqual(interval['slice'], 3)
 			self.assertEqual(interval['xmin'], 2.29)
 			self.assertEqual(interval['xmax'], 6.720125)
-			self.assertEqual(interval['text'], u'1测试单行'.encode('utf-8'))
+			self.assertEqual(interval['text'], u'1测试单行')
 
 	def test_parse_multilines(self):
-		raw_data = """        intervals [3]:
+		raw_data = u"""        intervals [3]:
             xmin = 2.29 
             xmax = 6.720125 
             text = "1测试多行
@@ -52,10 +52,10 @@ class TextgridParserTestCase(unittest.TestCase):
 			interval = self.tp.parse_blocks()[0]
 			self.assertEqual(interval['text'], u'1测试多行\
             第二行\
-            第三行'.encode('utf-8'))
+            第三行')
 
 	def test_incorrect_block(self):
-		raw_data = """        intervals [3]:
+		raw_data = u"""        intervals [3]:
             xmin = 2.29 
             xmax = 6.720125 
             text = "1测试多行
@@ -67,7 +67,7 @@ class TextgridParserTestCase(unittest.TestCase):
 			self.assertEqual(len(intervals), 0)
 
 	def test_ignore_incorrect(self):
-		raw_data = """        intervals [3]:
+		raw_data = u"""        intervals [3]:
             xmin = 2.29 
             xmax = 6.720125 
             text = "1测试多行
@@ -79,10 +79,10 @@ class TextgridParserTestCase(unittest.TestCase):
 		with patch('parse_blocks.TextgridBlocksParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
 			mock_lines.return_value = raw_data.splitlines()
 			interval = self.tp.parse_blocks()[0]
-			self.assertEqual(interval['text'], u'1测试'.encode('utf-8'))
+			self.assertEqual(interval['text'], u'1测试')
 
 	def test_blank_value(self):
-		raw_data = """        intervals [3]:
+		raw_data = u"""        intervals [3]:
             xmin = 2.29 
             xmax =  
             text = "1测试"
@@ -93,7 +93,7 @@ class TextgridParserTestCase(unittest.TestCase):
 			self.assertEqual(len(intervals), 0)
 
 	def test_multi_blocks(self):
-		raw_data = """        intervals [3]:
+		raw_data = u"""        intervals [3]:
             xmin = 2.29 
             xmax = 6.720125 
             text = "1第一块"
@@ -107,12 +107,12 @@ class TextgridParserTestCase(unittest.TestCase):
 			intervals = self.tp.parse_blocks()
 			# import pdb;pdb.set_trace()
 			self.assertEqual(len(intervals), 2)
-			self.assertEqual(intervals[0]['text'], u"1第一块".encode('utf-8'))
-			self.assertEqual(intervals[1]['text'], u"2第二块".encode('utf-8'))
+			self.assertEqual(intervals[0]['text'], u"1第一块")
+			self.assertEqual(intervals[1]['text'], u"2第二块")
 
 
 	def test_parse_header(self):
-		raw_data = """File type = "ooTextFile"
+		raw_data = u"""File type = "ooTextFile"
 Object class = "TextGrid"
 
 xmin = 0 
