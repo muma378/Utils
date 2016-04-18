@@ -11,7 +11,6 @@ CHARINFO_KEY = u"字符级信息"
 FILE_LOCATION_KEY = u"文件名"
 
 LINENO = 0
-
 INCORRECT_NUMS = 0
 
 def loads(info_txt):
@@ -24,8 +23,8 @@ def loads(info_txt):
 			try:
 				info = sort(info)
 			except ValueError, e:
-				# shutil.move(info[FILE_LOCATION_KEY])
-				pass
+				shutil.move(info[FILE_LOCATION_KEY], 'backup')
+				# pass
 			else:
 				info_list.append(info)
 	return info_list
@@ -40,26 +39,15 @@ def flat(dict_list):
 
 
 def sort(info):
-	global INCORRECT_NUMS
 	text_infos = info.pop(TEXTINFO_KEY)
-	card_num = match_text(text_infos, lambda k: len(k)>=12, 'card number')	# guess it stood for date
+	card_num = match_text(text_infos, lambda k: len(k)>=12, 'card number', required=True)	# guess it stood for date
 	valid_date = match_text(text_infos, lambda k: u"/" in k, 'valid date')	# guess it was valid date
-	ordered_append(info, TEXTINFO_KEY, (card_num, valid_date, text_infos))	
 
 	char_infos = info.pop(CHARINFO_KEY)
 	card_chars = match_chars(char_infos, card_num)
 	date_chars = match_chars(char_infos, valid_date)
-	
-	if card_num:
-		if len(card_chars) == 0:
-			for key in card_num.keys():
-				INCORRECT_NUMS += 1
-				print "unable to find chars for card number: " + key
-				raise ValueError
-	else:
-		print info[u"文件名"]
-		raise ValueError
 
+	ordered_append(info, TEXTINFO_KEY, (card_num, valid_date, text_infos))	
 	ordered_append(info, CHARINFO_KEY, (card_chars, date_chars, char_infos))
 	return info
 
@@ -78,13 +66,17 @@ def ordered_append(info, key, ordered_infos):
 	return info
 
 # uses boolean function to extract(guess) fields
-def match_text(text_infos, is_valid, name):
-	global LINENO
+def match_text(text_infos, is_valid, name, required=False):
 	for i, text_info in enumerate(text_infos):
 		for key in text_info.keys():
 			if is_valid(key):	
 				return text_infos.pop(i)
-	# print "unable to extract " + name + " in line" + str(LINENO)
+	if required:
+		global INCORRECT_NUMS
+		global LINENO
+		INCORRECT_NUMS += 1
+		print "unable to extract " + name + " in line" + str(LINENO)
+		raise ValueError
 	return None
 
 # use text_info extracted before to match corresponding characters
@@ -94,8 +86,6 @@ def match_chars(char_infos, text_info):
 		for key in text_info.keys():
 			text_info_str = key
 
-		# if text_info_str == '6221887051001012076':
-		# 	import pdb;pdb.set_trace()
 		for i, char_info in enumerate(char_infos):
 			for key in char_info.keys():
 				if text_info_str.startswith(key):
@@ -105,9 +95,15 @@ def match_chars(char_infos, text_info):
 							for pos in range(i, i+len(text_info_str))[::-1]:	# delete from the last
 								char_infos.pop(pos)		# remove the slice 
 						except IndexError, e:
-							break
+							break 	# number of character is less than the length of the key
 
 						return matched
+
+		global INCORRECT_NUMS
+		INCORRECT_NUMS += 1
+		print "unable to find chars for card number: " + text_info_str
+		raise ValueError
+	
 	return []
 
 # make sure if it was extracted correctly
@@ -133,4 +129,4 @@ if __name__ == '__main__':
 	dst_file = sys.argv[2]
 	info_list = loads(info_txt)
 	dumps(info_list, dst_file)
-	print str(INCORRECT_NUMS)
+	print str(INCORRECT_NUMS) + u"个错误条目被检测到"
