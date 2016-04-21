@@ -10,7 +10,7 @@ def split_layers(intervals):
 	items = ([], [], [])
 	layer_index = 0
 	for interval in intervals:
-		if xmax > interval['xmax']:
+		if xmax >= interval['xmax'] and xmax > interval['xmin']:
 			layer_index += 1
 
 		items[layer_index].append(interval)
