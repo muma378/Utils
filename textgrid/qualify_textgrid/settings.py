@@ -13,11 +13,12 @@ INTERVAL_KEY_LINENO = 'lineno'
 INTERVAL_KEY_XMAX 	= 'xmax'
 INTERVAL_KEY_XMIN 	= 'xmin'
 
-LOOKUP_NAMES_FLAGS = re.IGNORECASE | re.UNICODE
+LOOKUP_NAMES_FLAGS	 = re.IGNORECASE | re.UNICODE
 LOOKUP_NAMES_PATTERN = re.compile('.*\.textgrid$', flags=LOOKUP_NAMES_FLAGS)
 
-TEXT_CATEGORY_PATTERN = re.compile('^(?P<category>[1-4])\D.*', flags=re.UNICODE)
-TEXT_CATEGORY_KEY = 'category'
+CALCULAGRAPH_ANYTEXT_PATTERN  	= re.compile('.+', flags=re.UNICODE)
+CALCULAGRAPH_CATEGORY_PATTERN 	= re.compile('^(?P<category>[1-4])\D.*', flags=re.UNICODE)
+CALCULAGRAPH_CATEGORY_KEY 		= 'category'
 
 MARKS_MEANING = {
 	'1': '1-',
@@ -26,7 +27,7 @@ MARKS_MEANING = {
 	'4': '4-'
 }
 
-# 3 elements listed in each tuple, the first starnds for the rule of validating
+# 3 elements listed in each tuple, the first stands for the rule of validating
 # the second is a function to extract a part (or whole) of the text for next steps
 # the third indicates the message displayed when error happened
 CENSOR_RULES = (
@@ -41,7 +42,16 @@ LOG_DIRECTORY_NAME = 'logs'
 if not os.path.exists(LOG_DIRECTORY_NAME):
 	os.makedirs(LOG_DIRECTORY_NAME)
 
-LOG_DATETIME_FORMAT = "%y%m%d_%H%M%S"
-LOG_NAME_FORMAT = '{timestamp}-{log_type}-{basename}.log'
-LOG_ERROR_TYPE_NAME = "error"
-LOG_DURATION_TYPE_NAME = "duration"
+LOG_DATETIME_FORMAT 		= "%y%m%d_%H%M%S"
+LOG_NAME_FORMAT 			= '{timestamp}-{log_type}-{basename}.log'
+LOG_ERROR_TYPE_NAME 		= "error"
+LOG_DURATION_TYPE_NAME 		= "duration"
+
+TIME_PRINT_OPTION_NOT_EMPTY = 'not-empty'
+TIME_PRINT_OPTION_TOTAL		= 'total'
+TIME_PRINT_OPTION_VALID		= 'valid'
+
+TIME_ACTION_SEPARATELY 		= 'separately'
+TIME_ACTION_TOGETHER		= 'together'
+
+LINESEP 					= os.linesep

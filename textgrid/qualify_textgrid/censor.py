@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import base
 from settings import logger
 import settings
 
-# check if text in each interval is qualified
-class RulesCensor(object):
-	def __init__(self, rules, fd=sys.stdout):
+# check if text in each interval was qualified
+class RulesCensor(base.BaseEvaluator):
+	def __init__(self, rules):
 		self.rules = rules
 		logger.info("initialize RulesCensor with rules " + str(rules))
 
@@ -28,10 +29,10 @@ class RulesCensor(object):
 						break
 				if legal:
 					self.qualified.append(interval)
-		return self.qualified
+		return self
 
-	def output_errors(self):
+	def output_errors(self, fd=sys.stdout):
 		for err_msg in self.errors:
-			self.fd.write(err_msg.encode(settings.ENCODING) + os.linesep)
-		self.fd.write((u"共检测到%d个错误" % len(self.errors)).encode(settings.ENCODING))
-		slef.fd.write(os.linesep + os.linesep)
+			fd.write(err_msg.encode(settings.ENCODING) + os.linesep)
+		fd.write((u"共检测到%d个错误" % len(self.errors)).encode(settings.ENCODING))
+		fd.write(os.linesep + os.linesep)

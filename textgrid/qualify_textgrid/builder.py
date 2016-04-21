@@ -60,7 +60,6 @@ class OperationsBuilder(object):
 			for action in print_action:
 				action(intervals)
 
-		# import pdb;pdb.set_trace()
 		if "all_cal" in locals().keys():
 			fd.write(">>" + args.target.decode(settings.DECODING).encode(settings.ENCODING) + ' ')
 			all_cal.output_duration(fd)
