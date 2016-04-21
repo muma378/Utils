@@ -191,3 +191,19 @@ class TextgridBlocksParser(object):
 
 		return intervals
 		
+	# intervals passed in ought to be sorted 
+	def get_layer(self, intervals, index=0):
+		if index == 0:
+			return intervals
+
+		xmax = float('inf')
+		self.items, item = [], []
+		for interval in intervals:
+			if xmax >= interval['xmax']:	# value of xmax in the next layer must be less than or equals to the former one
+				item = []
+				self.items.append(item)
+
+			item.append(interval)
+			xmax = interval['xmax']
+
+		return self.items[index-1]
