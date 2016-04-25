@@ -16,9 +16,9 @@ INTERVAL_KEY_XMIN 	= 'xmin'
 LOOKUP_NAMES_FLAGS	 = re.IGNORECASE | re.UNICODE
 LOOKUP_NAMES_PATTERN = re.compile('.*\.textgrid$', flags=LOOKUP_NAMES_FLAGS)
 
-CALCULAGRAPH_ANYTEXT_PATTERN  	= re.compile('.+', flags=re.UNICODE)
-CALCULAGRAPH_CATEGORY_PATTERN 	= re.compile('^(?P<category>[1-4])\D.*', flags=re.UNICODE)
-CALCULAGRAPH_CATEGORY_KEY 		= 'category'
+TIMER_ANYTEXT_PATTERN  	= re.compile('.+', flags=re.UNICODE)
+TIMER_CATEGORY_PATTERN 	= re.compile('^(?P<category>[1-4])\D.*', flags=re.UNICODE)
+TIMER_CATEGORY_KEY 		= 'category'
 
 MARKS_MEANING = {
 	'1': '1-',

@@ -54,6 +54,15 @@ class CycleIterator(object):
 class TextgridBlocksParser(object):
 	"""translate the textgrid into a dict"""
 
+	ITEM_PATTERN = (
+		(re.compile('^\s*item \[(?P<item_index>\d+)\]:'), 'item_index', int),
+        (re.compile('^\s*class = "(?P<class>\w+)"', re.UNICODE), 'class', unicode), 
+        (re.compile('^\s*name = "(?P<name>\w*)"', re.UNICODE), 'name', unicode),
+        (re.compile('^\s*xmin = (?P<xmin>[\d\.]+)'), 'xmin', float),
+		(re.compile('^\s*xmax = (?P<xmax>[\d\.]+)'), 'xmax', float),
+        (re.compile('^\s*intervals: size = (?P<size>\d+)'), 'size', int),
+		)
+
 	# a block stands for each interval in an item
 	BLOCK_PATTERN = (
 		(re.compile('^\s*intervals \[(?P<slice>\d+)\]:', re.UNICODE), 'slice', int),
@@ -116,8 +125,8 @@ class TextgridBlocksParser(object):
 		return package
 
 	# to update values in interval
-	def __update(self, interval, item_pattern, line, append=False):
-		ip = item_pattern
+	def __update(self, interval, line_pattern, line, append=False):
+		ip = line_pattern
 		if append:
 			# only for text in multiple lines
 			interval[ip['key']] += ip['type'](ip['pattern'].match(line).group(ip['key']))
@@ -127,8 +136,34 @@ class TextgridBlocksParser(object):
 		return interval
 
 	# only works with BLOCK_PATTERN
-	def __match(self, item_pattern, line):
-		return item_pattern['pattern'].match(line)
+	def __match(self, line_pattern, line):
+		return line_pattern['pattern'].match(line)
+
+	# adaptor to get information about item, such as name, class
+	def parse_items(self):
+		item, items = {}, []
+		ip_iter = CycleIterator(self.__pack(TextgridBlocksParser.PATTERN_KEYS, TextgridBlocksParser.ITEM_PATTERN))
+		line_pattern = ip_iter.next()
+
+		def block_ends(item, items):
+			item['lineno'] = lineno - 5
+			items.append(item)
+
+		for lineno, line in enumerate(self.lines, start=1):
+			if not ip_iter.begins() and self.__match(ip_iter.head(), line):
+				item, line_pattern = {}, ip_iter.reset()
+
+			if self.__match(line_pattern, line):
+				self.__update(item, line_pattern, line)
+
+				if ip_iter.ends():
+					block_ends(item, items)
+					item = {}
+			else:
+				continue
+			line_pattern = ip_iter.next()
+		return items
+
 
 	def parse_blocks(self):		
 		lineno, interval, intervals = 0, {}, []
@@ -141,7 +176,7 @@ class TextgridBlocksParser(object):
 		mp_iter = CycleIterator(self.__pack(TextgridBlocksParser.PATTERN_KEYS, TextgridBlocksParser.MULTILINES_PATTERN))
 		# iterator for BLOCK_PATTERN
 		bp_iter = CycleIterator(self.__pack(TextgridBlocksParser.PATTERN_KEYS, TextgridBlocksParser.BLOCK_PATTERN))
-		item_pattern = bp_iter.next()
+		line_pattern = bp_iter.next()
 
 		for line in self.lines:
 			lineno += 1
@@ -151,11 +186,11 @@ class TextgridBlocksParser(object):
 			# but unmatched to the current one.
 			if not bp_iter.begins() and self.__match(bp_iter.head(), line):
 				logger.error('unable to parse line %d, ignored' % (lineno-1))
-				interval, item_pattern = {}, bp_iter.reset()
+				interval, line_pattern = {}, bp_iter.reset()
 
 			# to match the pattern one by one until it ends
-			if self.__match(item_pattern, line):
-				self.__update(interval, item_pattern, line)
+			if self.__match(line_pattern, line):
+				self.__update(interval, line_pattern, line)
 
 				# if the end of block was matched
 				# block ends here for most situation
@@ -187,23 +222,6 @@ class TextgridBlocksParser(object):
 				# logger.error('unable to parse line %d, ignored' % (lineno-1))
 				continue
 			
-			item_pattern = bp_iter.next()	# match the next pattern
+			line_pattern = bp_iter.next()	# match the next pattern
 
 		return intervals
-		
-	# intervals passed in ought to be sorted 
-	def get_layer(self, intervals, index=0):
-		if index == 0:
-			return intervals
-
-		xmax = float('inf')
-		self.items, item = [], []
-		for interval in intervals:
-			if xmax >= interval['xmax']:	# value of xmax in the next layer must be less than or equals to the former one
-				item = []
-				self.items.append(item)
-
-			item.append(interval)
-			xmax = interval['xmax']
-
-		return self.items[index-1]

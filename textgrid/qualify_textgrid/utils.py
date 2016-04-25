@@ -24,3 +24,32 @@ def traverser(src_dir, dst_dir, pattern):
 				except Exception as e:
 					logger.error(e)
 					logger.error("unable to process %s" % src_file)
+
+
+# intervals passed in ought to be sorted 
+def get_layer(intervals, index=0):
+	items = get_items(intervals)
+	if index == 0:
+		for item in items:
+			yield item
+	else:
+		yield items[index-1]
+
+
+def get_items(intervals):
+	xmax = float('inf')
+	items, item = [], []
+	for interval in intervals:
+		if xmax >= interval['xmax'] and interval['xmin'] == 0:	# value of xmax in the next layer must be less than or equals to the former one
+			item = []
+			items.append(item)
+
+		item.append(interval)
+		xmax = interval['xmax']
+	return items
+
+def flat_items(items): 	# makes neted items flatten
+	intervals = []
+	for item in items:
+		intervals.extend(item)
+	return intervals
