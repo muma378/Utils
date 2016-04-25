@@ -111,11 +111,12 @@ class TextgridParserTestCase(unittest.TestCase):
 		"""
 		with patch('parse_textgrid.TextgridParser.lines', new_callable=PropertyMock, create=True) as mock_lines:
 			mock_lines.return_value = raw_data.splitlines()
-			# intervals = self.tp.parse()
-			# self.assertEqual(len(intervals), 2)
-			# self.assertEqual(intervals[0]['text'], u"1第一块".encode('utf-8'))
-			# self.assertEqual(intervals[1]['text'], u"2第二块".encode('utf-8'))
+			intervals = self.tp.parse()
+			self.assertEqual(len(intervals), 2)
+			self.assertEqual(intervals[0]['text'], u"1第一块".encode('utf-8'))
+			self.assertEqual(intervals[1]['text'], u"2第二块".encode('utf-8'))
 
 	def test_real_file(self):
-		self.tp.feed('/Users/imac/Desktop/1.TextGrid')
+		# self.tp.feed('/Users/imac/Desktop/1.TextGrid')
+		self.tp.feed('/Users/imac/Downloads/test_3layers.TextGrid')
 		self.tp.parse()

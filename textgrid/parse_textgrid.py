@@ -35,7 +35,6 @@ class BlockIterator(object):
 	def head(self):
 		return self.patterns[0]
 
-
 	def next(self):
 		pattern = self.patterns[self.index]
 		self.index += 1
@@ -55,7 +54,8 @@ class BlockIterator(object):
 	def trail(self, line, candidate):
 		for block_name in candidate:
 			block_iter = self.owner.get(block_name)
-			if block_iter.head.match(line):
+			# the block is going to be used if the first pattern (entry) was matched
+			if block_iter.head.match(line):	
 				return block_iter
 		return None
 
@@ -188,37 +188,40 @@ class TextgridParser(object):
 				logger.error('unable to decode file %s, please open with a text editor and save it with encoding utf-8' % self.filename)
 				raise e
 
-
+	# TODO: unable to find text without full quotes
 	def parse(self):
 		lineno, data, block_iter = 0, {}, self.entry
 		freeze = False
 		for line in self.lines:
 			lineno += 1	
 
-			matched_block = block_iter.match_start(line)
-			if matched_block:
-				block_iter = matched_block
-
-			if not freeze:
+			# in theory, the next pattern is ought to be matched with the next line
+			if not freeze:	# stop rolling if didn't match the last line
 				try:
 					pattern_manager = block_iter.next()
 				except IndexError, e:
 					block_iter = block_iter.exit()
 					pattern_manager = block_iter.next()
 
+			matched_block = block_iter.match_start(line)	# renew the block iterator
+			if matched_block:
+				block_iter = matched_block
+				pattern_manager = block_iter.next()
+				# TODO: give up data stash and logging
+
 			# match patterns in error if it no patterns matched
-			if not pattern_manager.match(line):
+			if not pattern_manager.match(line):		# matched failed, turned to the list of error for help
 				matched_block = block_iter.match_error(line)
 				if matched_block:
 					block_iter = matched_block
-					pattern_manager = block_iter.next()
+					pattern_manager = block_iter.next()						
 				else:
 					# matches nether current parrten nor possible block
-					logger.info('unabel to match %s at line %d' % (line, lineno))
+					logger.info('unable to match %s at line %d' % (line, lineno))
 					freeze = True
 					continue
 
-			print pattern_manager.retrieve(line)	# TODO: which data set to use
+			print pattern_manager.retrieve(line)	# TODO: using data stash to save and load data
 			freeze = False
 
 
