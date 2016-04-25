@@ -8,6 +8,7 @@
 
 #ifndef ____audio__
 #define ____audio__
+#define _CRT_SECURE_NO_WARNINGS
 
 #include <fstream>
 #include "common.h"

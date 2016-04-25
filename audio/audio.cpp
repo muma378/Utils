@@ -49,8 +49,6 @@ void BaseWave::set_filename(const char *new_name){
 }
 
 
-
-
 void BaseWave::set_header(const uint channels, const uint sample_rate, const uint sample_width){
     // set flags
     set_flag_vals(wave_header.riff_flag, RIFF);
@@ -77,9 +75,9 @@ void BaseWave::set_header(const BaseWave& other){
 }
 
 bool BaseWave::is_valid(wave_header_t h) const {
-    if (strcmp((const char*)h.riff_flag, RIFF) or
-        strcmp((const char*)h.wave_flag, WAVE) or
-        strcmp((const char*)h.fmt_flag, FMT) or
+    if (strcmp((const char*)h.riff_flag, RIFF) ||
+        strcmp((const char*)h.wave_flag, WAVE) ||
+        strcmp((const char*)h.fmt_flag, FMT) ||
         strcmp((const char*)h.data_flag, DATA)) {
         return true;
     }
@@ -99,11 +97,10 @@ void BaseWave::open(const char* filename){
         fs.read(data_ptr, wave_header.data_size);
         set_content_ptr(data_ptr);
         set_filename(filename);
-        cout << *this << endl;
+        // cout << *this << endl;
     }else{
         throw UnreadableException();
     }
-   
 }
 
 
@@ -179,7 +176,12 @@ void BaseWave::lower_sampling(const uint low_samp_rate){
         set_sample_rate(low_samp_rate);
         delete [] content;  // delete space allocated
         content = samples;
-    }
+	}
+	else{
+		if (lower_rate < 1){
+			cout << "sampling rate is " << wave_header.sample_rate << ", which is less than " << low_samp_rate << endl;
+		}
+	}
     return;
         
 }
@@ -277,7 +279,7 @@ void BaseWave::test_avg_pack(){
     pack((size16_t*)content, samples_vec, 10/2, 2000/2);
     float samples_avg_2 = 0;
     for (vector<float>::iterator it=samples_vec.begin();it != samples_vec.end() ; it++) {
-        samples_avg_2 += *it;
+        samples_avg_2 += abs(*it);
     }
     assert(samples_avg_1 == samples_avg_2/5);
 }
