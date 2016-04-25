@@ -99,16 +99,16 @@ void BaseWave::open(const char* filename){
         set_filename(filename);
         // cout << *this << endl;
     }else{
-        throw UnreadableException();
+        throw UnreadableException("invalid wave header format");
     }
 }
 
 
 void BaseWave::write(){
-    if (filename != nullptr) {
+    if (filename != nullptr && strlen(filename)) {
         write(filename);
     }else{
-        throw UnwritableException("no name is specified");
+        throw UnwritableException("no filename is specified to write");
     }
 }
 

@@ -13,6 +13,8 @@
 #include <fstream>
 #include "common.h"
 
+#define HEADER_SIZE_DEF 44
+
 typedef struct {
     size8_t   riff_flag[4]; // "RIFF"
     size32_t  size;         // size of overall file, equals to data_size + 44
@@ -32,7 +34,7 @@ typedef struct {
 
 typedef union {
     wave_header_t   header;
-    char            buffer[44];
+    char            buffer[HEADER_SIZE_DEF];
 }header_buffer_t;
 
 
@@ -57,7 +59,7 @@ public:
         fs.close();
     };
     
-    static const unsigned short HEADER_SIZE = 44;
+    static const unsigned short HEADER_SIZE = HEADER_SIZE_DEF;
     static const char* RIFF;
     static const char* WAVE;
     static const char* FMT;
