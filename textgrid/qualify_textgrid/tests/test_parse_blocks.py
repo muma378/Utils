@@ -123,4 +123,7 @@ size = 1 """
 			mock_content.return_value = raw_data
 			# self.tp.parse_header()
 			# self.assertEqual(self.tp.original_duration_sum, 601.551125)
-
+	
+	def test_real_file(self):
+		self.tp.read('/Users/imac/Downloads/test_3layers.TextGrid')
+		print self.tp.parse_items()

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# calculagraph.py - usage: from calculagraph import Calculagraph; cg = Calculagraph()
+# timer.py - usage: from timer import Timer; cg = Timer()
 # to calculate duration for intervals	
 # author: xiao yang <xiaoyang0117@gmail.com>
 # date: 2016.April.14
@@ -13,14 +13,14 @@ from settings import logger
 import settings
 
 
-class BaseCalculagraph(base.BaseEvaluator):
+class BaseTimer(base.BaseEvaluator):
 	TIME_UNIT = {
 		's':(1, u'秒'),
 		'm':(60.0, u'分'),
 		'h':(3600.0, u'小时')
 	}
 	def __init__(self):
-		super(BaseCalculagraph, self).__init__()
+		super(BaseTimer, self).__init__()
 		self.errors = []
 		self.msg=u"{duration_display}{unit_display}" + settings.LINESEP
 
@@ -45,12 +45,12 @@ class BaseCalculagraph(base.BaseEvaluator):
 		fd.write(msg.format(duration_display=duration/divider, unit_display=unit_display, **kwargs).encode(settings.ENCODING))
 
 
-class PatternCalculagraph(BaseCalculagraph):
+class PatternTimer(BaseTimer):
 	DEFAULT_PATTERN = re.compile('.*', re.UNICODE)
 
 	"""calculate duration if it matches the pattern"""
 	def __init__(self, match_parser=None):
-		super(PatternCalculagraph, self).__init__()
+		super(PatternTimer, self).__init__()
 		self.match_parser = match_parser if match_parser else self.DEFAULT_PATTERN	# matchs all by default
 		self.msg = u"文件有效时长为{duration_display}{unit_display}" + settings.LINESEP
 
@@ -75,10 +75,10 @@ class PatternCalculagraph(BaseCalculagraph):
 		self.output(fd, self.duration, self.msg, unit)
 
 
-class CategoricalCalculagraph(BaseCalculagraph):
+class CategoricalTimer(BaseTimer):
 	"""calculate duration for different categories respectively"""
 	def __init__(self, category_parser, pattern_key, category_display=None):
-		super(CategoricalCalculagraph, self).__init__()
+		super(CategoricalTimer, self).__init__()
 		self.category_parser = category_parser
 		self.pattern_key = pattern_key
 		self.category_display = category_display if category_display else settings.MARKS_MEANING
@@ -115,14 +115,14 @@ def dict_add(d1, d2):
 		temp_dict[k] = d1[k] + d2.get(k, 0)
 	return temp_dict
 
-class OverallCalculagraph(BaseCalculagraph):
+class OverallTimer(BaseTimer):
 	"""calculate the overall duration for all files listed"""
 	def __init__(self, concrete_cal):
-		super(OverallCalculagraph, self).__init__()
+		super(OverallTimer, self).__init__()
 		self.add = operator.add  	# use + for most cases
-		if type(concrete_cal).__name__ == "PatternCalculagraph":
+		if type(concrete_cal).__name__ == "PatternTimer":
 			self.accum = 0
-		elif type(concrete_cal).__name__ == "CategoricalCalculagraph":
+		elif type(concrete_cal).__name__ == "CategoricalTimer":
 			self.accum = {}
 			self.add= dict_add
 		else:
