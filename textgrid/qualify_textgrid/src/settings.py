@@ -3,7 +3,6 @@ import os
 import re
 import log
 
-logger = log.LogHandler('qualifier.log', stdout=False)
 
 DECODING = 'gb2312' if os.name=='nt' else 'utf-8'
 ENCODING = 'utf-8'
@@ -41,6 +40,8 @@ CENSOR_RULES = (
 LOG_DIRECTORY_NAME = 'logs'
 if not os.path.exists(LOG_DIRECTORY_NAME):
 	os.makedirs(LOG_DIRECTORY_NAME)
+	
+logger = log.LogHandler(os.path.join(LOG_DIRECTORY_NAME, 'textgrid.log'), stdout=False)
 
 LOG_DATETIME_FORMAT 		= "%y%m%d_%H%M%S"
 LOG_NAME_FORMAT 			= '{timestamp}-{log_type}-{basename}.log'

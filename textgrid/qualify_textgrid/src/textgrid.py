@@ -38,7 +38,7 @@ def main():
 	time_parser.set_defaults(builder=ob.timeit)
 
 	correct_parser = subparser.add_parser('fix', help=u"检查并修正不符合格式的TextGrid")
-	correct_parser.add_argument('-l', '--layer', metavar='N', default=2, type=int, help=u'被修正的层次，例如检查并修正item[3]时，该值为3。作用于所有层时该值为0。默认值为0')
+	correct_parser.add_argument('-l', '--layer', metavar='N', default=0, type=int, help=u'被修正的层次，例如检查并修正item[3]时，该值为3。作用于所有层时该值为0。默认值为0')
 	correct_parser.set_defaults(builder=ob.fixit)
 
 	args = parser.parse_args(sys.argv[1:])
