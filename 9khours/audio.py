@@ -31,14 +31,16 @@ class Wave(object):
 	def __init__(self, filename, header, content):
 		self.filename = filename
 		self.header = header
+		# samplewidth bytes
 		self.nchannels, self.samplewidth, self.framerate, self.nframes = self.header[0:4] 
-		self.content = content
+		self.content = content 		# type<str>
 
 	# get the format for packing or unpacking, like '<iiii'
 	def _get_packfmt(self):
 		# TODO: not sure how byte arrange in stereo
 		return Wave.PACKENDIAN[sys.byteorder] + Wave.PACKTYPE[self.samplewidth] * self.nframes * self.nchannels
 
+	# it is too time&memory-consuming, do not use!
 	def unpack(self):	
 		try:
 			return self.unpacked_content
@@ -71,20 +73,44 @@ class Wave(object):
 	def bytes2frames(self, bytes):
 		return long(bytes/self.samplewidth)
 
-	def lower_sampling(self, low_framerate=8000):
-		step = int(self.framerate / low_framerate)
-		if step > 1:	# make sure the new framerate is lower than the original
-			sample = self.unpack()[0::step]
-		elif step == 1:
-			return self.unpack()
-		else:
-			raise ValueError("the target's frame rate is %d, which is lower than %d", (self.framerate, low_framerate))
+	def get_data_size(self):
+		return self.samplewidth * self.nchannels * self.nframes  	# bytes
+
+	# @profile
+	# def lower_sampling(self, low_framerate=8000):
+	# 	step = int(self.framerate / low_framerate)
+	# 	if step > 1:	# make sure the new framerate is lower than the original
+	# 		sample = self.unpack()[0::step]
+	# 	elif step == 1:
+	# 		return self.unpack()
+	# 	else:
+	# 		raise ValueError("the target's frame rate is %d, which is lower than %d", (self.framerate, low_framerate))
 		
-		self.nframes = len(sample)
-		self.framerate = low_framerate
-		self.header = self.header[0:2]+(self.framerate, self.nframes,)+self.header[4:]
-		self.pack(sample)
-		return sample
+	# 	self.nframes = len(sample)
+	# 	self.framerate = low_framerate
+	# 	self.header = self.header[0:2]+(self.framerate, self.nframes,)+self.header[4:]
+	# 	self.pack(sample)
+	# 	return sample
+
+	# @profile
+	def lower_sampling(self, low_framerate=8000):
+		lower_rate = int(self.framerate / low_framerate)
+		if lower_rate > 1:	# make sure the new framerate is lower than the original
+			sample = ''
+			distance = lower_rate * self.samplewidth	# continual frames that in the new wave had "distance" bytes in the old 
+			self.nframes = self.get_data_size() / distance
+		
+			for i in xrange(self.nframes):
+				sample += self.content[i*distance:i*distance+self.samplewidth]
+			self.framerate = low_framerate
+			self.header = self.header[0:2]+(self.framerate, self.nframes,)+self.header[4:]
+			self.content = sample
+		if lower_rate < 1:
+			raise ValueError("the target's sampling rate is %d, which is lower than %d", (self.framerate, low_framerate))
+		return self.content
+
+	def stereo2mono(self):
+		pass
 
 	# this voice segmentation algorithm is based on energy estimation 
 	# which refered to :
@@ -145,7 +171,8 @@ class WaveWriter(Wave):
 class WaveReader(Wave):
 	def __init__(self, filename):
 		self.wav = self.open(filename)
-		super(WaveReader, self).__init__(filename, self.wav.getparams(), self.wav.readframes( self.wav.getparams()[3]))
+		header = self.wav.getparams()
+		super(WaveReader, self).__init__(filename, header, self.wav.readframes( header[3]))
 		self.sections = [Wave(filename, self.header, self.content)]
 		self.wav.close()
 
@@ -177,6 +204,7 @@ class WaveReader(Wave):
 
 		return self.sections
 
+	# @profile
 	def smart_truncate(self, duration, window=0.5, threshold=200.0):
 		window_bytes = self.time2bytes(window)
 		section_bytes = self.time2bytes(duration)
