@@ -8,11 +8,9 @@
 
 #include "audio.h"
 
-
-
 const char* BaseWave::RIFF = "RIFF";
 const char* BaseWave::WAVE = "WAVE";
-const char* BaseWave::FMT  = "fmt\0";
+const char* BaseWave::FMT  = "fmt ";
 const char* BaseWave::DATA = "data";
 
 
@@ -75,10 +73,10 @@ void BaseWave::set_header(const BaseWave& other){
 }
 
 bool BaseWave::is_valid(wave_header_t h) const {
-    if (strcmp((const char*)h.riff_flag, RIFF) ||
-        strcmp((const char*)h.wave_flag, WAVE) ||
-        strcmp((const char*)h.fmt_flag, FMT) ||
-        strcmp((const char*)h.data_flag, DATA)) {
+    if (strncmp((const char*)h.riff_flag, RIFF, 4) ||
+        strncmp((const char*)h.wave_flag, WAVE, 4) ||
+        strncmp((const char*)h.fmt_flag, FMT, 4) ||
+        strncmp((const char*)h.data_flag, DATA, 4)) {
         return false;
     }
     return true;	// return ture if all flags above were correct 
@@ -86,9 +84,10 @@ bool BaseWave::is_valid(wave_header_t h) const {
 
 
 void BaseWave::open(const char* filename){
-    
     fs.open(filename, fstream::in | fstream::binary);
-    fs.read(header_buffer.buffer, HEADER_SIZE);       // read header to the union
+    fs.read(header_buffer.buffer, FIXED_HEADER_SIZE);       // read header to the union
+    seek_dataflag();
+    fs.read(header_buffer.buffer+FIXED_HEADER_SIZE, FLOAT_HEADER_SIZE);
     
     if (is_valid(header_buffer.header)){
         wave_header = header_buffer.header;
@@ -101,6 +100,18 @@ void BaseWave::open(const char* filename){
     }else{
         throw UnreadableException("invalid wave header format");
     }
+}
+
+void BaseWave::seek_dataflag(){
+    char next_character = fs.peek();
+    char* trash = new char;
+    while (strncmp(&next_character, DATA, 1)) {
+        fs.read(trash, 1);  // thrown to bin
+        next_character = fs.peek(); // return the next character but not extracting
+    }
+    delete trash;
+    return;
+
 }
 
 
@@ -190,7 +201,7 @@ void BaseWave::lower_sampling(const uint low_samp_rate){
 const char* BaseWave::get_clip_name(uint index){
     string filename_str(filename);
     filename_str.insert(filename_str.length()-SUFFIX_LENGTH, INDEX_SEP+to_string(index));
-	uint name_length = filename_str.length();
+	unsigned long name_length = filename_str.length();
 	char* clip_name = new char[name_length];
 	strcpy(clip_name, filename_str.c_str());
     return clip_name;
@@ -260,7 +271,9 @@ vector<BaseWave*>& BaseWave::smart_truncate(const uint max_duraion, vector<BaseW
                 }
             }
             uint  clip_size = clip_ending_byte - clip_begining_byte;
-            clips_vec.push_back(wave_clip(clip_begining_byte, clip_size, get_clip_name(counter++)));
+            const char* clip_name = get_clip_name(counter++);
+            clips_vec.push_back(wave_clip(clip_begining_byte, clip_size, clip_name));
+            delete [] clip_name;
         }
     }
     
@@ -278,6 +291,7 @@ BaseWave* BaseWave::wave_clip(const uint clip_begining_byte, const uint clip_siz
     return clip;
 }
 
+// test if the program goes as we thought
 void BaseWave::test_avg_pack(){
 	const uint start_byte = int(wave_header.data_size) / 3;
     float samples_avg_1 = get_samples_avg(start_byte, 10);
@@ -290,6 +304,7 @@ void BaseWave::test_avg_pack(){
     assert(samples_avg_1 == samples_avg_2/5);
 }
 
+// test if the operation system was as same as our development environment
 void BaseWave::test_type_size() {
     if (sizeof(size8_t) == 1 &&
         sizeof(size16_t) == 2 &&

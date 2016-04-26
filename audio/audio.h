@@ -14,6 +14,11 @@
 #include "common.h"
 
 #define HEADER_SIZE_DEF 44
+//  parameters from riff_flag to sample_width are fixed
+#define FIXED_HEADER_SIZE 36
+//  intervals between sample_width and data_flag may be filled with '\0'
+#define FLOAT_HEADER_SIZE 8
+
 
 typedef struct {
     size8_t   riff_flag[4]; // "RIFF"
@@ -99,6 +104,7 @@ public:
     void set_content_ptr(const char* ptr);
     
     void open(const char* filename);    // open a wav file
+    void seek_dataflag();
     void write();
     void write(const char* filename);
     bool is_valid(wave_header_t header) const;  // to check if all flags are set correctly
