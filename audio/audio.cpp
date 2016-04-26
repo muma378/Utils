@@ -190,7 +190,10 @@ void BaseWave::lower_sampling(const uint low_samp_rate){
 const char* BaseWave::get_clip_name(uint index){
     string filename_str(filename);
     filename_str.insert(filename_str.length()-SUFFIX_LENGTH, INDEX_SEP+to_string(index));
-    return filename_str.c_str();
+	uint name_length = filename_str.length();
+	char* clip_name = new char[name_length];
+	strcpy(clip_name, filename_str.c_str());
+    return clip_name;
 }
 
 
@@ -212,7 +215,9 @@ vector<BaseWave*>& BaseWave::truncate(const uint max_duration, vector<BaseWave*>
                 clip_ending_byte = wave_header.data_size;
             }
             uint  clip_size = clip_ending_byte - clip_begining_byte;
-            clips_vec.push_back(wave_clip(clip_begining_byte, clip_size, get_clip_name(counter++)));
+			const char* clip_name = get_clip_name(counter++);
+            clips_vec.push_back(wave_clip(clip_begining_byte, clip_size, clip_name));
+			delete[] clip_name;
         }
     }
     return clips_vec;
