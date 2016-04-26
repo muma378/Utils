@@ -1,7 +1,8 @@
-//
+//	
 //  main.cpp
 //  audio
-//
+//	exit with critical error (for system, operation and etc) return 1, 
+//  with error happened in reading returns 2, error occured in writting returns 3
 //  Created by Xiao Yang on 16/4/8.
 //  Copyright (c) 2016年 Young. All rights reserved.
 //

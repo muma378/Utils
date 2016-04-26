@@ -79,9 +79,9 @@ bool BaseWave::is_valid(wave_header_t h) const {
         strcmp((const char*)h.wave_flag, WAVE) ||
         strcmp((const char*)h.fmt_flag, FMT) ||
         strcmp((const char*)h.data_flag, DATA)) {
-        return true;
+        return false;
     }
-    return false;
+    return true;	// return ture if all flags above were correct 
 }
 
 
@@ -279,9 +279,10 @@ BaseWave* BaseWave::wave_clip(const uint clip_begining_byte, const uint clip_siz
 }
 
 void BaseWave::test_avg_pack(){
-    float samples_avg_1 = get_samples_avg(2000, 10);
+	const uint start_byte = int(wave_header.data_size) / 3;
+    float samples_avg_1 = get_samples_avg(start_byte, 10);
     vector<float> samples_vec;
-    pack((size16_t*)content, samples_vec, 10/2, 2000/2);
+    pack((size16_t*)content, samples_vec, 10/2, start_byte / 2);
     float samples_avg_2 = 0;
     for (vector<float>::iterator it=samples_vec.begin();it != samples_vec.end() ; it++) {
         samples_avg_2 += abs(*it);
