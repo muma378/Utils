@@ -8,13 +8,13 @@
 
 
 #include "audio.h"
-
+#include "common.h"
 
 int main(int argc, const char * argv[]) {
 //    BaseWave wav = BaseWave(1, 16000, 16, 0);
 	
-	test_type_size();
 	BaseWave wav;
+    wav.test_type_size();
 
 	if (argc != 3){
 		cout << "number of arguments is incorrect\n";

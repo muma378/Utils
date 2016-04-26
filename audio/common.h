@@ -11,6 +11,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cmath>
 #include <assert.h>
 
 #include "exceptions.h"
@@ -21,21 +22,6 @@ typedef char   size8_t;
 typedef short  size16_t;
 typedef int    size32_t;
 typedef unsigned int    uint;
-
-// to catch error caused by platform changed
-void test_type_size() {
-	if (sizeof(char) == 1 && 
-		sizeof(short) == 2 &&
-		sizeof(int) == 4){
-		return;
-	}
-	else{
-		cerr << "critical error: types' size of the platform in use are not as same as the macros defined\n"
-			<< "please get the source code, alter it and then rebuild." << endl;
-		exit(1);
-	}
-}
-
 
 // set values for flags
 template <typename T>
@@ -64,5 +50,7 @@ const float avg_pack(T* content, uint sample_num, uint start) {
     }
     return sum/sample_num;
 }
+
+
 
 #endif

@@ -118,6 +118,8 @@ public:
     vector<BaseWave*>& smart_truncate(const uint max_duraion, vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were splited
     BaseWave* wave_clip(const uint clip_begining_byte, const uint clip_size, const char* clip_name);
     
+    // to catch error caused by platform changed
+    void test_type_size();
     void test_avg_pack();
 };
 

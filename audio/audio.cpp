@@ -284,3 +284,16 @@ void BaseWave::test_avg_pack(){
     assert(samples_avg_1 == samples_avg_2/5);
 }
 
+void BaseWave::test_type_size() {
+    if (sizeof(size8_t) == 1 &&
+        sizeof(size16_t) == 2 &&
+        sizeof(size32_t) == 4){
+        return;
+    }
+    else{
+        cerr << "critical error: types' size of the platform in use are not as same as the macros defined\n"
+        << "please get the source code, alter it and then rebuild." << endl;
+        exit(1);
+    }
+}
+
