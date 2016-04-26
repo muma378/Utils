@@ -201,7 +201,7 @@ void BaseWave::lower_sampling(const uint low_samp_rate){
 const char* BaseWave::get_clip_name(uint index){
     string filename_str(filename);
     filename_str.insert(filename_str.length()-SUFFIX_LENGTH, INDEX_SEP+to_string(index));
-	unsigned long name_length = filename_str.length();
+	unsigned long name_length = filename_str.length() + 1;
 	char* clip_name = new char[name_length];
 	strcpy(clip_name, filename_str.c_str());
     return clip_name;
