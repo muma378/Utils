@@ -21,7 +21,7 @@ using namespace std;
 typedef char   size8_t;
 typedef short  size16_t;
 typedef int    size32_t;
-typedef unsigned int    uint;
+typedef unsigned int uint;
 
 // set values for flags
 template <typename T>

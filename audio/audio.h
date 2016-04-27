@@ -118,11 +118,11 @@ public:
     const float get_duraion() const;
     const float get_samples_avg(const uint begining_byte, const uint bytes_num) const;  // get the avarage value of samples from the begining byte with the size of bytes_num
     
-    void lower_sampling(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
+    void downsample(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
     const char* get_clip_name(uint index);      // return "$filename_1.wav"
-    vector<BaseWave*>& truncate(const uint max_duration, vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration
-    vector<BaseWave*>& smart_truncate(const uint max_duraion, vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were splited
-    BaseWave* wave_clip(const uint clip_begining_byte, const uint clip_size, const char* clip_name);
+    vector<BaseWave*>& slice(const uint max_duration, vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration
+    vector<BaseWave*>& smart_slice(const uint max_duraion, vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were splited
+    BaseWave* new_wave_clip(const uint clip_begining_byte, const uint clip_size, const char* clip_name);
     
     // to catch error caused by platform changed
     void test_type_size();

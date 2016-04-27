@@ -168,36 +168,36 @@ const float BaseWave::get_samples_avg(const uint begining_byte, const uint bytes
     }
 }
 
-
-void BaseWave::lower_sampling(const uint low_samp_rate){
-    uint lower_rate = uint(wave_header.sample_rate / low_samp_rate);
-    uint new_data_size = wave_header.data_size/lower_rate;
-    char* samples = new char[new_data_size];
-    uint sample_loop = wave_header.sample_bytes * lower_rate;
+// decrease the rate of sampling
+void BaseWave::downsample(const uint new_samp_rate){
+    uint shrink_rate = uint(wave_header.sample_rate / new_samp_rate);
+    uint size_aft_shrink = wave_header.data_size / shrink_rate;
+    char* samples = new char[size_aft_shrink];
+    uint byte_distance = wave_header.sample_bytes * shrink_rate;  // number of bytes filled in two coming continuous frames
     
-    if (lower_rate > 1){
+    if (shrink_rate > 1){
         uint j = 0;
         for (uint i=0; i < wave_header.data_size; i++) {
-            if (i%sample_loop < wave_header.sample_bytes) { // only copies N continuous bytes in M bytes while M/N is lower_rate
+            if (i%byte_distance < wave_header.sample_bytes) { // only copies N continuous bytes in M bytes while M/N equals to shrink_rate
                 samples[j] = content[i];
                 j++;
             }
         }
-        set_data_size(new_data_size);
-        set_sample_rate(low_samp_rate);
+        set_data_size(size_aft_shrink);
+        set_sample_rate(new_samp_rate);
         delete [] content;  // delete space allocated
         content = samples;
 	}
 	else{
-		if (lower_rate < 1){
-			cout << "sampling rate is " << wave_header.sample_rate << ", which is less than " << low_samp_rate << endl;
+		if (shrink_rate < 1){
+			cout << "sampling rate is " << wave_header.sample_rate << ", which is less than " << new_samp_rate << endl;
 		}
 	}
     return;
         
 }
 
-// return the name of
+// return the name of a clip with index
 const char* BaseWave::get_clip_name(uint index){
     string filename_str(filename);
     filename_str.insert(filename_str.length()-SUFFIX_LENGTH, INDEX_SEP+to_string(index));
@@ -210,7 +210,7 @@ const char* BaseWave::get_clip_name(uint index){
 
 
 // split wav into clips if its duration was over the max_duration
-vector<BaseWave*>& BaseWave::truncate(const uint max_duration, vector<BaseWave*>& clips_vec){
+vector<BaseWave*>& BaseWave::slice(const uint max_duration, vector<BaseWave*>& clips_vec){
     clips_vec.clear();
     const uint max_clip_bytes = time2bytes(max_duration);
     if (max_clip_bytes > wave_header.data_size) {
@@ -227,15 +227,15 @@ vector<BaseWave*>& BaseWave::truncate(const uint max_duration, vector<BaseWave*>
             }
             uint  clip_size = clip_ending_byte - clip_begining_byte;
 			const char* clip_name = get_clip_name(counter++);
-            clips_vec.push_back(wave_clip(clip_begining_byte, clip_size, clip_name));
+            clips_vec.push_back(new_wave_clip(clip_begining_byte, clip_size, clip_name));
 			delete[] clip_name;
         }
     }
     return clips_vec;
 };
 
-// truncate but make sure no voice were splited
-vector<BaseWave*>& BaseWave::smart_truncate(const uint max_duraion, vector<BaseWave*>& clips_vec, float window, float threshold, const float offset){
+// truncate but make sure no voice were to be splited
+vector<BaseWave*>& BaseWave::smart_slice(const uint max_duraion, vector<BaseWave*>& clips_vec, float window, float threshold, const float offset){
     clips_vec.clear();
     
     const uint max_clip_bytes = time2bytes(max_duraion);
@@ -272,7 +272,7 @@ vector<BaseWave*>& BaseWave::smart_truncate(const uint max_duraion, vector<BaseW
             }
             uint  clip_size = clip_ending_byte - clip_begining_byte;
             const char* clip_name = get_clip_name(counter++);
-            clips_vec.push_back(wave_clip(clip_begining_byte, clip_size, clip_name));
+            clips_vec.push_back(new_wave_clip(clip_begining_byte, clip_size, clip_name));
             delete [] clip_name;
         }
     }
@@ -280,7 +280,8 @@ vector<BaseWave*>& BaseWave::smart_truncate(const uint max_duraion, vector<BaseW
     return clips_vec;
 }
 
-BaseWave* BaseWave::wave_clip(const uint clip_begining_byte, const uint clip_size, const char* clip_name){
+// allocates a new wav with specified length
+BaseWave* BaseWave::new_wave_clip(const uint clip_begining_byte, const uint clip_size, const char* clip_name){
     char* clip_content = new char[clip_size];
     memcpy(clip_content, content+clip_begining_byte, clip_size);    //copy a slice of content to the clip
     
