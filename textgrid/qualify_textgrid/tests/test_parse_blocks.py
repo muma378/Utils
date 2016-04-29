@@ -126,4 +126,4 @@ size = 1 """
 	
 	def test_real_file(self):
 		self.tp.read('/Users/imac/Downloads/test_3layers.TextGrid')
-		print self.tp.parse_items()
+		items = self.tp.parse_items()
