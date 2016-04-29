@@ -8,11 +8,14 @@
 #ifndef audio_common_h
 #define audio_common_h
 
+// #include <stdlib.h>
+// #include <string.h>
+#include <assert.h>
 #include <iostream>
 #include <string>
 #include <vector>
 #include <cmath>
-#include <assert.h>
+#include <cstdlib>
 
 #include "exceptions.h"
 

@@ -105,6 +105,9 @@ void BaseWave::open(const char* filename){
         fs.read(data_ptr, wave_header.data_size);
         set_content_ptr(data_ptr);
         set_filename(filename);
+
+		vector<float> samples;
+		pack((size16_t*)content, samples, 20, 1000);
         // cout << *this << endl;
     }else{
         throw UnreadableException("invalid wave header format");
@@ -177,7 +180,7 @@ const float BaseWave::get_samples_avg(const uint begining_byte, const uint bytes
     }
 }
 
-void BaseWave::disconcpy(const char* src, char* dst, uint size, uint cycle_len, uint samp_len){
+void BaseWave::interleaved_copy(const char* src, char* dst, uint size, uint cycle_len, uint samp_len){
     for (uint i=0, j=0; i < size; i++) {
         if (i%cycle_len < samp_len) {
             dst[j++] = src[i];

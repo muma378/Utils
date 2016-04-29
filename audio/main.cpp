@@ -9,6 +9,7 @@
 
 
 #include "audio.h"
+#include "common.h"
 
 int main(int argc, const char * argv[]) {
 //    BaseWave wav = BaseWave(1, 16000, 16, 0);
@@ -30,7 +31,6 @@ int main(int argc, const char * argv[]) {
 		cerr << e.what() << endl;;
 		exit(2);
 	}
-    
   
     BaseWave mono = wav.stereo2mono();
     mono.set_filename(dst_file);
@@ -53,3 +53,5 @@ int main(int argc, const char * argv[]) {
 	}
     return 0;
 }
+
+//D:\data\123\第十四次模糊\赣语\合格\G226\20151122_102230.wav C : \Users\xiaoyang\Desktop\a.wav
