@@ -54,6 +54,11 @@ const float avg_pack(T* content, uint sample_num, uint start) {
     return sum/sample_num;
 }
 
-
-
+template <typename T>
+void intercpy(T* src, T* dst, const uint samp_size, const uint interval){
+    for (uint i=0, j=0; i<samp_size; i+=interval) {
+        dst[j++] = src[i];
+    }
+    return;
+}
 #endif

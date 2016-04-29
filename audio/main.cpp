@@ -35,7 +35,7 @@ int main(int argc, const char * argv[]) {
     BaseWave mono = wav.stereo2mono();
     mono.set_filename(dst_file);
     mono.write();
-    
+
     wav.test_avg_pack();
     wav.downsample(8000);
 	//wav.write(argv[2]);
