@@ -30,8 +30,8 @@ typedef struct {
     size16_t  channels;     // number of channels
     size32_t  sample_rate;  // sample rate = number of samples per second, or Hertz
     size32_t  byte_rate;    // SampleRate * BitsPerSample * Channels / 8, number of bytes per second
-    size16_t  sample_bytes; // BitsPerSamle * channels / 8, bytes per sample
-    size16_t  sample_width; // bits per sample
+    size16_t  sample_bytes; // sample_width * channels / 8, bytes per sample
+    size16_t  sample_width; // bits per sample, note 'sample' indicated here is not as same as 'sample' in sample_bytes, it is not concerning channels
     size8_t   data_flag[4]; // "data"
     size32_t  data_size;    // size of data section
     
@@ -54,6 +54,15 @@ protected:
     fstream         fs;         // file pointer if exists
     const uint SUFFIX_LENGTH = 4;   // .wav
     const char INDEX_SEP = '_';
+    
+    void set_sample_rate(const uint sample_rate);
+    void set_data_size(const uint data_size);
+    void set_content_ptr(const char* ptr);
+    void renew_channels_num(uint channel_num);
+    void seek_dataflag();
+    
+    const uint time2bytes(const float duration) const;    // gets the number of bytes used in the duration
+    const uint time2samples(const float duration) const;    // gets the number of samples need in the duration
     
 public:
     BaseWave(){};
@@ -99,12 +108,7 @@ public:
         return out;
     }
     
-    void set_sample_rate(const uint sample_rate);
-    void set_data_size(const uint data_size);
-    void set_content_ptr(const char* ptr);
-    
     void open(const char* filename);    // open a wav file
-    void seek_dataflag();
     void write();
     void write(const char* filename);
     bool is_valid(wave_header_t header) const;  // to check if all flags are set correctly
@@ -112,12 +116,12 @@ public:
     void set_header(const uint channels, const uint sample_rate, const uint sample_width);
     void set_filename(const char* new_name);
     
-    const uint time2bytes(const float duration) const;    // gets the number of bytes used in the duration
-    const uint time2samples(const float duration) const;    // gets the number of samples need in the duration
     const uint get_samples_num() const;
     const float get_duraion() const;
     const float get_samples_avg(const uint begining_byte, const uint bytes_num) const;  // get the avarage value of samples from the begining byte with the size of bytes_num
     
+    void disconcpy(const char* src, char* dst, uint size, uint cycle_len, uint samp_len);  // only copy first samp_len bytes in each cycle from src to dst
+    BaseWave& stereo2mono();
     void downsample(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
     const char* get_clip_name(uint index);      // return "$filename_1.wav"
     vector<BaseWave*>& slice(const uint max_duration, vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration

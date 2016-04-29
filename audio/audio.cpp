@@ -30,6 +30,15 @@ inline void BaseWave::set_content_ptr(const char *ptr){
     content = ptr;
 }
 
+inline void BaseWave::renew_channels_num(uint channel_num){
+    uint decrease_rate = wave_header.channels / channel_num;
+    wave_header.channels = channel_num;
+    wave_header.byte_rate /= decrease_rate;
+    wave_header.sample_bytes /= decrease_rate;
+    set_data_size(wave_header.data_size/decrease_rate);
+    return;
+}
+
 BaseWave::BaseWave(const BaseWave& other): wave_header(other.wave_header), content(other.content){
 }
 
@@ -168,6 +177,31 @@ const float BaseWave::get_samples_avg(const uint begining_byte, const uint bytes
     }
 }
 
+void BaseWave::disconcpy(const char* src, char* dst, uint size, uint cycle_len, uint samp_len){
+    for (uint i=0, j=0; i < size; i++) {
+        if (i%cycle_len < samp_len) {
+            dst[j++] = src[i];
+        }
+    }
+    return;
+}
+
+// covernt stereo to mono
+BaseWave& BaseWave::stereo2mono(){
+    if (wave_header.channels != 2) {
+        throw UnreadableException("wav to be converted is not a stereo");
+    }
+    vector<float> samples;
+    pack(content, samples, 40, 2000);
+    BaseWave* mono = new BaseWave(*this);
+    mono->renew_channels_num(1);
+    char* mono_content = new char[mono->wave_header.data_size];
+    disconcpy(content, mono_content, wave_header.data_size, wave_header.sample_bytes, mono->wave_header.sample_bytes);
+    mono->content = mono_content;
+    pack(mono_content, samples, 20, 1000);
+    return *mono;
+}
+
 // decrease the rate of sampling
 void BaseWave::downsample(const uint new_samp_rate){
     uint shrink_rate = uint(wave_header.sample_rate / new_samp_rate);
@@ -176,13 +210,8 @@ void BaseWave::downsample(const uint new_samp_rate){
     uint byte_distance = wave_header.sample_bytes * shrink_rate;  // number of bytes filled in two coming continuous frames
     
     if (shrink_rate > 1){
-        uint j = 0;
-        for (uint i=0; i < wave_header.data_size; i++) {
-            if (i%byte_distance < wave_header.sample_bytes) { // only copies N continuous bytes in M bytes while M/N equals to shrink_rate
-                samples[j] = content[i];
-                j++;
-            }
-        }
+        // only copies N continuous bytes in M bytes while M/N equals to shrink_rate
+        disconcpy(content, samples, wave_header.data_size, byte_distance, wave_header.sample_bytes);
         set_data_size(size_aft_shrink);
         set_sample_rate(new_samp_rate);
         delete [] content;  // delete space allocated
