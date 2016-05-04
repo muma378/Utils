@@ -120,7 +120,7 @@ public:
     const float get_duraion() const;
     const float get_samples_avg(const uint begining_byte, const uint bytes_num) const;  // get the avarage value of samples from the begining byte with the size of bytes_num
     
-    void interleaved_copy(const char* src, char* dst, uint size, uint cycle_len, uint samp_len);  // only copy first samp_len bytes in each cycle from src to dst
+    void interleaved_copy(char* dst, uint size, uint cycle_len, uint samp_len);  // only copy first samp_len bytes in each cycle from this->content to dst
     BaseWave& stereo2mono();
     void downsample(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
     const char* get_clip_name(uint index);      // return "$filename_1.wav"

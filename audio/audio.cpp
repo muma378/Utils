@@ -35,6 +35,8 @@ inline void BaseWave::renew_channels_num(uint channel_num){
     wave_header.channels = channel_num;
     wave_header.byte_rate /= decrease_rate;
     wave_header.sample_bytes /= decrease_rate;
+    wave_header.tag = -2;
+    wave_header.length = 40;
     set_data_size(wave_header.data_size/decrease_rate);
     return;
 }
@@ -106,8 +108,8 @@ void BaseWave::open(const char* filename){
         set_content_ptr(data_ptr);
         set_filename(filename);
 
-		vector<float> samples;
-		pack((size16_t*)content, samples, 20, 1000);
+//		vector<float> samples;
+//		pack((size16_t*)content, samples, 20, 1000);
         // cout << *this << endl;
     }else{
         throw UnreadableException("invalid wave header format");
@@ -123,7 +125,6 @@ void BaseWave::seek_dataflag(){
     }
     delete trash;
     return;
-
 }
 
 
@@ -172,7 +173,7 @@ const float BaseWave::get_samples_avg(const uint begining_byte, const uint bytes
         case 16:
             return avg_pack((size16_t*)content, bytes_num/2, begining_byte/2);
         case 32:
-            return avg_pack((size16_t*)content, bytes_num/4, begining_byte/4);
+            return avg_pack((size32_t*)content, bytes_num/4, begining_byte/4);
             
         default:
             const char* err_msg = ("width of sample detected is not in the range: " + to_string(wave_header.sample_width)).c_str();
@@ -180,11 +181,22 @@ const float BaseWave::get_samples_avg(const uint begining_byte, const uint bytes
     }
 }
 
-void BaseWave::interleaved_copy(const char* src, char* dst, uint size, uint cycle_len, uint samp_len){
-    for (uint i=0, j=0; i < size; i++) {
-        if (i%cycle_len < samp_len) {
-            dst[j++] = src[i];
-        }
+void BaseWave::interleaved_copy(char* dst, uint size, uint cycle_len, uint samp_len){
+    const uint interval = cycle_len / samp_len;
+    switch (wave_header.sample_width) {
+        case 8:
+            intercpy((size8_t*)content, (size8_t*)dst, wave_header.data_size, interval);
+            break;
+        case 16:
+            intercpy((size16_t*)content, (size16_t*)dst, wave_header.data_size/2, interval);
+            break;
+        case 32:
+            intercpy((size32_t*)content, (size32_t*)dst, wave_header.data_size/4, interval);
+            break;
+        default:
+            const char* err_msg = ("width of sample detected is not in the range: " + to_string(wave_header.sample_width)).c_str();
+            throw UnreadableException(err_msg);
+            break;
     }
     return;
 }
@@ -195,13 +207,13 @@ BaseWave& BaseWave::stereo2mono(){
         throw UnreadableException("wav to be converted is not a stereo");
     }
     vector<float> samples;
-    pack(content, samples, 40, 2000);
+    pack((size16_t*)content, samples, 40, 2000);
     BaseWave* mono = new BaseWave(*this);
     mono->renew_channels_num(1);
     char* mono_content = new char[mono->wave_header.data_size];
-    disconcpy(content, mono_content, wave_header.data_size, wave_header.sample_bytes, mono->wave_header.sample_bytes);
+    interleaved_copy(mono_content, wave_header.data_size, wave_header.sample_bytes, mono->wave_header.sample_bytes);
     mono->content = mono_content;
-    pack(mono_content, samples, 20, 1000);
+    pack((size16_t*)mono_content, samples, 20, 1000);      // TODO: to delete
     return *mono;
 }
 
@@ -214,7 +226,7 @@ void BaseWave::downsample(const uint new_samp_rate){
     
     if (shrink_rate > 1){
         // only copies N continuous bytes in M bytes while M/N equals to shrink_rate
-        disconcpy(content, samples, wave_header.data_size, byte_distance, wave_header.sample_bytes);
+        interleaved_copy(samples, wave_header.data_size, byte_distance, wave_header.sample_bytes);
         set_data_size(size_aft_shrink);
         set_sample_rate(new_samp_rate);
         delete [] content;  // delete space allocated
