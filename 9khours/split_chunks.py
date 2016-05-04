@@ -1,7 +1,7 @@
 import os
 import sys
 import shutil
-
+import subprocess
 from audio import WaveWriter, WaveReader
 from traverse import traverse
 
@@ -34,9 +34,23 @@ def split_chunk(src_file, dst_file):
 			WaveWriter(filename, sec.header, sec.content).write()
 
 
+def cpp_split_chunk(src_file, dst_file):
+	print "processing " + src_file
+	dirname = os.path.dirname(dst_file)
+	if not os.path.exists(dirname):
+		os.makedirs(dirname)
+
+	try:
+		subprocess.check_call(["audio.exe", src_file, dst_file])
+	except subprocess.CalledProcessError, e:
+		record_fp.write(src_file + "with error " + e + os.linesep)
+		raise Exception
+
+
 if __name__ == '__main__':
 	src_dir = sys.argv[1]
 	dst_dir = sys.argv[2]
 	record_fp = open(UNPORCESSED_LIST, 'a', 0)
-	traverse(src_dir, dst_dir, split_chunk, target='.wav')
+	traverse(src_dir, dst_dir, cpp_split_chunk, target='.wav')
+	# traverse(src_dir, dst_dir, split_chunk, target='.wav')
 	# split_chunk(src_dir, dst_dir)
