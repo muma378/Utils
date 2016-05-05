@@ -58,7 +58,7 @@ void BaseWave::set_filename(const char *new_name){
 }
 
 
-void BaseWave::set_header(const uint channels, const uint sample_rate, const uint sample_width){
+void BaseWave::set_header(const uint channels, const uint sample_rate, const uint sample_width, const uint data_size){
     // set flags
     set_flag_vals(wave_header.riff_flag, RIFF);
     set_flag_vals(wave_header.wave_flag, WAVE);
@@ -71,7 +71,7 @@ void BaseWave::set_header(const uint channels, const uint sample_rate, const uin
     wave_header.channels    = channels;
     wave_header.sample_rate = sample_rate;
     wave_header.sample_width= sample_width;
-    wave_header.data_size   = 0;    //
+    wave_header.data_size   = data_size;
     
     wave_header.size        = wave_header.data_size + 44;
     wave_header.byte_rate   = sample_rate * sample_width * channels / 8;
@@ -80,7 +80,11 @@ void BaseWave::set_header(const uint channels, const uint sample_rate, const uin
 }
 
 void BaseWave::set_header(const BaseWave& other){
-    set_header(other.wave_header.channels, other.wave_header.sample_rate, other.wave_header.sample_width);
+    set_header(other.wave_header.channels, other.wave_header.sample_rate, other.wave_header.sample_width, other.wave_header.data_size);
+}
+
+void BaseWave::normalize(){
+    set_header(wave_header.channels, wave_header.sample_rate, wave_header.sample_width, wave_header.data_size);
 }
 
 bool BaseWave::is_valid(wave_header_t h) const {
@@ -107,10 +111,6 @@ void BaseWave::open(const char* filename){
         fs.read(data_ptr, wave_header.data_size);
         set_content_ptr(data_ptr);
         set_filename(filename);
-
-//		vector<float> samples;
-//		pack((size16_t*)content, samples, 20, 1000);
-        // cout << *this << endl;
     }else{
         throw UnreadableException("invalid wave header format");
     }
@@ -119,10 +119,20 @@ void BaseWave::open(const char* filename){
 void BaseWave::seek_dataflag(){
     char next_character = fs.peek();
     char* trash = new char;
+    int counter = 0;
+//    cout << "char in trash:" << endl;
     while (strncmp(&next_character, DATA, 1)) {
         fs.read(trash, 1);  // thrown to bin
+//        if (*trash){
+//            cout << *trash;
+//        }else{
+//            cout << " ";
+//        }
+//        cout << (short)*trash << " ";
+        counter++;
         next_character = fs.peek(); // return the next character but not extracting
     }
+    cout << "\n" << counter << " bytes in trash" << endl;
     delete trash;
     return;
 }
@@ -138,7 +148,6 @@ void BaseWave::write(){
 
 void BaseWave::write(const char* filename){
     ofstream ofs(filename, fstream::out|fstream::binary);
-    
     header_buffer.header = wave_header;
     if (ofs.is_open()) {
         ofs.write(header_buffer.buffer, HEADER_SIZE);
@@ -164,6 +173,25 @@ const uint BaseWave::time2bytes(const float duration) const{
 
 const uint BaseWave::time2samples(const float duration) const{
     return uint(wave_header.sample_rate * wave_header.channels * duration);
+}
+
+void BaseWave::get_samples(vector<float>& samples, const uint begining_byte, const uint bytes_num) const{
+    switch (wave_header.sample_width){
+        case 8:
+            pack(content, samples, bytes_num, begining_byte);
+            break;
+        case 16:
+            pack((size16_t*)content, samples, bytes_num/2, begining_byte/2);
+            break;
+        case 32:
+            pack((size32_t*)content, samples, bytes_num/4, begining_byte/4);
+            break;
+        default:
+            const char* err_msg = ("width of sample detected is not in the range: " + to_string(wave_header.sample_width)).c_str();
+            throw UnreadableException(err_msg);
+    }
+    return;
+
 }
 
 const float BaseWave::get_samples_avg(const uint begining_byte, const uint bytes_num) const{
@@ -196,7 +224,6 @@ void BaseWave::interleaved_copy(char* dst, uint size, uint cycle_len, uint samp_
         default:
             const char* err_msg = ("width of sample detected is not in the range: " + to_string(wave_header.sample_width)).c_str();
             throw UnreadableException(err_msg);
-            break;
     }
     return;
 }
@@ -206,14 +233,11 @@ BaseWave& BaseWave::stereo2mono(){
     if (wave_header.channels != 2) {
         throw UnreadableException("wav to be converted is not a stereo");
     }
-    vector<float> samples;
-    pack((size16_t*)content, samples, 40, 2000);
     BaseWave* mono = new BaseWave(*this);
     mono->renew_channels_num(1);
     char* mono_content = new char[mono->wave_header.data_size];
     interleaved_copy(mono_content, wave_header.data_size, wave_header.sample_bytes, mono->wave_header.sample_bytes);
     mono->content = mono_content;
-    pack((size16_t*)mono_content, samples, 20, 1000);      // TODO: to delete
     return *mono;
 }
 
@@ -341,7 +365,7 @@ void BaseWave::test_avg_pack(){
 	const uint start_byte = int(wave_header.data_size) / 3;
     float samples_avg_1 = get_samples_avg(start_byte, 10);
     vector<float> samples_vec;
-    pack((size16_t*)content, samples_vec, 10/2, start_byte / 2);
+    get_samples(samples_vec, start_byte, 10);
     float samples_avg_2 = 0;
     for (vector<float>::iterator it=samples_vec.begin();it != samples_vec.end() ; it++) {
         samples_avg_2 += abs(*it);

@@ -26,17 +26,18 @@ int main(int argc, const char * argv[]) {
 	const char* dst_file = argv[2];
 	try{
 		wav.open(src_file);
+        wav.test_avg_pack();
 	}
 	catch (const UnreadableException& e){	
 		cerr << e.what() << endl;;
 		exit(2);
 	}
   
-    BaseWave mono = wav.stereo2mono();
-    mono.set_filename(dst_file);
-    mono.write();
-
-    wav.test_avg_pack();
+//    BaseWave mono = wav.stereo2mono();
+//    mono.set_filename(dst_file);
+//    mono.normalize();
+//    mono.write();
+    
     wav.downsample(8000);
 	//wav.write(argv[2]);
 	vector<BaseWave*> wav_vec;
@@ -44,6 +45,7 @@ int main(int argc, const char * argv[]) {
     wav.smart_slice(30*60, wav_vec);		// cause smart_truncate will generate files in the same directory
 	try{
 		for (vector<BaseWave*>::iterator it = wav_vec.begin(); it != wav_vec.end(); it++) {
+            (*it)->normalize(); // remember to normalize header before writting
 			(*it)->write();
 		}
 	}

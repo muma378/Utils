@@ -25,13 +25,13 @@ typedef struct {
     size32_t  size;         // size of overall file, equals to data_size + 44
     size8_t   wave_flag[4]; // "WAVE"
     size8_t   fmt_flag[4];  // "fmt\0"
-    size32_t  length;       // length of format data as listed above, always 16
+    size32_t  length;       // length of format data as listed below, always 16, 18 or 40
     size16_t  tag;          // type of format, 1 stands for PCM
     size16_t  channels;     // number of channels
     size32_t  sample_rate;  // sample rate = number of samples per second, or Hertz
     size32_t  byte_rate;    // SampleRate * BitsPerSample * Channels / 8, number of bytes per second
     size16_t  sample_bytes; // sample_width * channels / 8, bytes per sample
-    size16_t  sample_width; // bits per sample, note 'sample' indicated here is not as same as 'sample' in sample_bytes, it is not concerning channels
+    size16_t  sample_width; // bits used to represent each sample of each channel, note 'sample' indicated here is not as same as 'sample' in sample_bytes, it is not concerning channels
     size8_t   data_flag[4]; // "data"
     size32_t  data_size;    // size of data section
     
@@ -113,13 +113,15 @@ public:
     void write(const char* filename);
     bool is_valid(wave_header_t header) const;  // to check if all flags are set correctly
     void set_header(const BaseWave& wav);   // copy wav.wave_header to this
-    void set_header(const uint channels, const uint sample_rate, const uint sample_width);
+    void set_header(const uint channels, const uint sample_rate, const uint sample_width, const uint data_size);
     void set_filename(const char* new_name);
     
     const uint get_samples_num() const;
     const float get_duraion() const;
+    void  get_samples(vector<float>& samples, const uint begining_byte, const uint bytes_num) const;
     const float get_samples_avg(const uint begining_byte, const uint bytes_num) const;  // get the avarage value of samples from the begining byte with the size of bytes_num
     
+    void normalize();   // remove extra bytes, leave clean header only
     void interleaved_copy(char* dst, uint size, uint cycle_len, uint samp_len);  // only copy first samp_len bytes in each cycle from this->content to dst
     BaseWave& stereo2mono();
     void downsample(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
