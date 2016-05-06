@@ -108,6 +108,14 @@ public:
         return out;
     }
     
+    bool is_normalized() const{
+        return wave_header.length == 16;
+    };
+    
+    void output_filename() const{
+        cout << filename << endl;
+    };
+    
     void open(const char* filename);    // open a wav file
     void write();
     void write(const char* filename);

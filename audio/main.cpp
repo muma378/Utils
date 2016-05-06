@@ -38,6 +38,10 @@ int main(int argc, const char * argv[]) {
 //    mono.normalize();
 //    mono.write();
     
+    if(wav.is_normalized()){
+        return 0;
+    }
+    wav.output_filename();
     wav.downsample(8000);
 	//wav.write(argv[2]);
 	vector<BaseWave*> wav_vec;

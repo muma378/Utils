@@ -35,8 +35,8 @@ inline void BaseWave::renew_channels_num(uint channel_num){
     wave_header.channels = channel_num;
     wave_header.byte_rate /= decrease_rate;
     wave_header.sample_bytes /= decrease_rate;
-    wave_header.tag = -2;
-    wave_header.length = 40;
+    wave_header.tag = 1;
+    wave_header.length = 16;
     set_data_size(wave_header.data_size/decrease_rate);
     return;
 }
