@@ -31,7 +31,7 @@ int main(int argc, const char * argv[]) {
 	try{
 		wav.open(src_file);
         wav.test_avg_pack();
-        cout << wav << endl;
+       // cout << wav << endl;
 	}
 	catch (const UnreadableException& e){	
 		cerr << e.what() << endl;;
@@ -57,7 +57,7 @@ int main(int argc, const char * argv[]) {
 	//wav.write(argv[2]);
 	vector<BaseWave*> wav_vec;
 	wav.set_filename(dst_file);		// alter the filename to renew the place to save
-    wav.smart_slice(10*60, wav_vec);		// cause smart_truncate will generate files in the same directory
+    wav.smart_slice(30*60, wav_vec);		// cause smart_truncate will generate files in the same directory
 	try{
 		for (vector<BaseWave*>::iterator it = wav_vec.begin(); it != wav_vec.end(); it++) {
 			(*it)->write();
@@ -69,5 +69,3 @@ int main(int argc, const char * argv[]) {
 	}
     return 0;
 }
-
-//D:\data\123\第十四次模糊\赣语\合格\G226\20151122_102230.wav C : \Users\xiaoyang\Desktop\a.wav

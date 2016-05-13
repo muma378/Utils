@@ -17,6 +17,7 @@
 #include "audio.h"
 
 using namespace std;
+#define _CRT_SECURE_NO_WARNINGS
 
 const char* BaseWave::RIFF = "RIFF";
 const char* BaseWave::WAVE = "WAVE";
@@ -296,7 +297,7 @@ const char* BaseWave::get_clip_name(uint index){
     filename_str.insert(filename_str.length()-SUFFIX_LENGTH, INDEX_SEP+to_string(index));
 	unsigned long name_length = filename_str.length() + 1;
 	char* clip_name = new char[name_length];
-	strcpy(clip_name, filename_str.c_str());
+	strcpy_s(clip_name, name_length, filename_str.c_str());
     return clip_name;
 }
 

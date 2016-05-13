@@ -8,7 +8,6 @@
 
 #ifndef ____audio__
 #define ____audio__
-#define _CRT_SECURE_NO_WARNINGS
 
 #include <fstream>
 #include <iostream>
@@ -86,7 +85,7 @@ public:
     // append "\0" at the end of the flag so that it could be printed correctly
     static const char* flag_to_str(const size8_t* flag, uint length)  {
         char * cstr = new char [length + 1];
-        strcpy(cstr, (char*)(flag));
+        strcpy_s(cstr, length, (char*)(flag));
         cstr[length] = '\0';
         return cstr;
     }
