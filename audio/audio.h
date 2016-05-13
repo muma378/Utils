@@ -49,7 +49,7 @@ class BaseWave {
    
 protected:
     wave_header_t   wave_header;// 44 bytes' header information
-    const char*     content;    // pointer to content
+    const char*     content = nullptr;    // pointer to content
     const char*     filename = nullptr;
     
     header_buffer_t header_buffer;  // to read and save
@@ -72,7 +72,9 @@ public:
     ~BaseWave(){
         delete [] content;
         delete [] filename;
-        fs.close();
+        if (fs.is_open()){
+            fs.close();
+        }
     };
     
     static const unsigned short HEADER_SIZE = HEADER_SIZE_DEF;
@@ -95,12 +97,13 @@ public:
         const char* fmt_flag_str  = flag_to_str(w.wave_header.fmt_flag, 4);
         const char* data_flag_str = flag_to_str(w.wave_header.data_flag, 4);
         
-        out << "HEADER INFO:\nriff flag: " << riff_flag_str << "\nfile size: " << w.wave_header.size;
-        out << "\nwave flag: " << wave_flag_str << "\nfmt flag: " << fmt_flag_str;
-        out << "\nfmt length: " << w.wave_header.length << "\ntag: " << w.wave_header.tag;
-        out << "\nchannels: " << w.wave_header.channels << "\nsample rate: " << w.wave_header.sample_rate;
-        out << "\nbyte rate: " << w.wave_header.byte_rate << "\nbytes per frame: " << w.wave_header.sample_bytes;
-        out << "\nbits per sample: " << w.wave_header.sample_width << "\ndata flag: " << data_flag_str;
+        out << w.filename << " with header info: \n";
+        out << "riff flag: " << riff_flag_str << "\t\tfile size: " << w.wave_header.size;
+        out << "\nwave flag: " << wave_flag_str << "\t\tfmt flag: " << fmt_flag_str;
+        out << "\nfmt length: " << w.wave_header.length << "\t\ttag: " << w.wave_header.tag;
+        out << "\nchannels: " << w.wave_header.channels << "\t\tsample rate: " << w.wave_header.sample_rate;
+        out << "\nbyte rate: " << w.wave_header.byte_rate << "\t\tbytes per frame: " << w.wave_header.sample_bytes;
+        out << "\nbits per sample: " << w.wave_header.sample_width << "\t\tdata flag: " << data_flag_str;
         out << "\ndata size: " << w.wave_header.data_size << std::endl;
         
         delete [] riff_flag_str;
@@ -109,6 +112,17 @@ public:
         delete [] data_flag_str;
         return out;
     }
+    
+    BaseWave& operator=(const BaseWave& other) {
+        if (this != &other) {
+            set_header(other);
+            delete [] content;      // free the old space if it was allocated before
+            char* data_ptr = new char[wave_header.data_size];
+            std::memcpy(data_ptr, other.content, wave_header.data_size);
+            set_content_ptr(data_ptr);
+        }
+        return *this;
+    };
     
     void open(const char* filename);    // open a wav file
     void write();

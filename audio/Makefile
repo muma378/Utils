@@ -1,5 +1,5 @@
 CC = g++
-CFLAGS = -Wall -c -g -std=c++11 -stdlib=libstdc++
+CFLAGS = -Wall -c -g -std=c++11
 LDFLAGS = 
 TARGET = smart_truncate
 

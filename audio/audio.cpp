@@ -40,16 +40,8 @@ inline void BaseWave::set_content_ptr(const char *ptr){
     content = ptr;
 }
 
-inline bool BaseWave::is_normalized() const{
-    return wave_header.length == 16;
-}
-
 inline const char* BaseWave::get_filename() const{
     return filename;
-}
-
-inline bool BaseWave::is_stereo() const{
-    return wave_header.channels == 2;
 }
 
 BaseWave::BaseWave(const BaseWave& other): wave_header(other.wave_header), content(other.content){
@@ -104,6 +96,11 @@ void BaseWave::set_header(const BaseWave& other){
     set_header(other.wave_header.channels, other.wave_header.sample_rate, other.wave_header.sample_width, other.wave_header.data_size);
 }
 
+bool BaseWave::is_normalized() const{
+    return (wave_header.length == 16);
+}
+
+
 void BaseWave::normalize(){
     set_header(wave_header.channels, wave_header.sample_rate, wave_header.sample_width, wave_header.data_size);
 }
@@ -126,15 +123,17 @@ void BaseWave::open(const char* filename){
     fs.read(header_buffer.buffer, FIXED_HEADER_SIZE);       // read header to the union
     seek_dataflag();
     fs.read(header_buffer.buffer+FIXED_HEADER_SIZE, FLOAT_HEADER_SIZE);
-    
+   
     if (is_valid(header_buffer.header)){
         wave_header = header_buffer.header;
         delete [] content;
         char* data_ptr = new char[wave_header.data_size];
         fs.read(data_ptr, wave_header.data_size);
+        fs.close();
         set_content_ptr(data_ptr);
         set_filename(filename);
     }else{
+        fs.close();
         throw UnreadableException("invalid wave header format");
     }
 }
@@ -155,7 +154,7 @@ void BaseWave::seek_dataflag(){
         counter++;
         next_character = fs.peek(); // return the next character but not extracting
     }
-    cout << "\n" << counter << " bytes in trash" << endl;
+//    cout << "\n" << counter << " bytes in trash" << endl;
     delete trash;
     return;
 }
@@ -249,6 +248,10 @@ void BaseWave::interleaved_copy(char* dst, uint size, uint cycle_len, uint samp_
     return;
 }
 
+bool BaseWave::is_stereo() const{
+    return (wave_header.channels == 2);
+}
+
 // covernt stereo to mono
 BaseWave& BaseWave::stereo2mono(){
     if (wave_header.channels != 2) {
@@ -260,6 +263,7 @@ BaseWave& BaseWave::stereo2mono(){
     interleaved_copy(mono_content, wave_header.data_size, wave_header.sample_bytes, mono->wave_header.sample_bytes);
     mono->content = mono_content;
     return *mono;
+    
 }
 
 // decrease the rate of sampling
@@ -295,7 +299,6 @@ const char* BaseWave::get_clip_name(uint index){
 	strcpy(clip_name, filename_str.c_str());
     return clip_name;
 }
-
 
 
 // split wav into clips if its duration was over the max_duration
