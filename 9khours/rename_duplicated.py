@@ -13,11 +13,15 @@ def slot_in(src_file, _):
 def rename_duplicated(slots, dst_dir):
 	for basename, locations in slots.items():
 		if len(locations) > 1:	# duplicated names
-			for location in locations:
-				parent_dir = os.path.basename(os.path.dirname(location))
-				dst_file = os.path.join(dst_dir, parent_dir + '_' + basename)
-				record_fp.write("rename " + location + " to " + dst_file + '\n')
-				shutil.copy(location, dst_file)
+			benchmark =  os.stat(locations[0]).st_size
+			for location in locations[1:]:
+				if os.stat(location).st_size == benchmark:
+					record_fp.write("file " + location + " is the same with " + dst_file + '\n')
+				else:
+					parent_dir = os.path.basename(os.path.dirname(location))
+					dst_file = os.path.join(dst_dir, parent_dir + '_' + basename)
+					record_fp.write("rename " + location + " to " + dst_file + '\n')
+					shutil.copy(location, dst_file)
 		else:
 			dst_file = os.path.join(dst_dir, basename)
 			shutil.copy(locations[0], dst_file)
