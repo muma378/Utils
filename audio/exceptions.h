@@ -26,17 +26,15 @@ public:
 };
 
 
-class UnreadableException: public BaseException
-{
+class UnreadableException: public BaseException{
 private:
     const char* message = "Unable to read the audio file";
 
 public:
     using BaseException::BaseException;
     using BaseException::what;
-    
-    
 };
+
 
 class UnwritableException: public BaseException{
 private:
@@ -47,4 +45,13 @@ public:
     using BaseException::what;
 };
 
+
+class InvalidOperation: public BaseException {
+private:
+    const char* message = "operation is invalid";
+
+public:
+    using BaseException::BaseException;
+    using BaseException::what;
+};
 #endif

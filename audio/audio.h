@@ -11,6 +11,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <fstream>
+#include <iostream>
+#include <vector>
 #include "common.h"
 
 #define HEADER_SIZE_DEF 44
@@ -51,18 +53,18 @@ protected:
     const char*     filename = nullptr;
     
     header_buffer_t header_buffer;  // to read and save
-    fstream         fs;         // file pointer if exists
+    std::fstream         fs;         // file pointer if exists
     const uint SUFFIX_LENGTH = 4;   // .wav
     const char INDEX_SEP = '_';
     
     void set_sample_rate(const uint sample_rate);
     void set_data_size(const uint data_size);
     void set_content_ptr(const char* ptr);
-    void renew_channels_num(uint channel_num);
+    void update_channels_num(uint channel_num);
     void seek_dataflag();
     
-    const uint time2bytes(const float duration) const;    // gets the number of bytes used in the duration
-    const uint time2samples(const float duration) const;    // gets the number of samples need in the duration
+    const uint sec2byte(const float duration) const;    // gets the number of bytes used in the duration
+    const uint sec2sample(const float duration) const;    // gets the number of samples need in the duration
     
 public:
     BaseWave(){};
@@ -87,7 +89,7 @@ public:
         return cstr;
     }
     
-    friend ostream& operator<<(ostream& out, const BaseWave& w){
+    friend std::ostream& operator<<(std::ostream& out, const BaseWave& w){
         const char* riff_flag_str = flag_to_str(w.wave_header.riff_flag, 4);
         const char* wave_flag_str = flag_to_str(w.wave_header.wave_flag, 4);
         const char* fmt_flag_str  = flag_to_str(w.wave_header.fmt_flag, 4);
@@ -99,7 +101,7 @@ public:
         out << "\nchannels: " << w.wave_header.channels << "\nsample rate: " << w.wave_header.sample_rate;
         out << "\nbyte rate: " << w.wave_header.byte_rate << "\nbytes per frame: " << w.wave_header.sample_bytes;
         out << "\nbits per sample: " << w.wave_header.sample_width << "\ndata flag: " << data_flag_str;
-        out << "\ndata size: " << w.wave_header.data_size << endl;
+        out << "\ndata size: " << w.wave_header.data_size << std::endl;
         
         delete [] riff_flag_str;
         delete [] wave_flag_str;
@@ -108,39 +110,36 @@ public:
         return out;
     }
     
-    bool is_normalized() const{
-        return wave_header.length == 16;
-    };
-    
-    void output_filename() const{
-        cout << filename << endl;
-    };
-    
     void open(const char* filename);    // open a wav file
     void write();
     void write(const char* filename);
-    bool is_valid(wave_header_t header) const;  // to check if all flags are set correctly
+    bool is_stereo() const;
+    bool is_normalized() const;
+    bool is_valid(wave_header_t header) const;  // to check if all flags were set correctly
+    
     void set_header(const BaseWave& wav);   // copy wav.wave_header to this
     void set_header(const uint channels, const uint sample_rate, const uint sample_width, const uint data_size);
+    const char* get_filename() const;
     void set_filename(const char* new_name);
-    
     const uint get_samples_num() const;
     const float get_duraion() const;
-    void  get_samples(vector<float>& samples, const uint begining_byte, const uint bytes_num) const;
-    const float get_samples_avg(const uint begining_byte, const uint bytes_num) const;  // get the avarage value of samples from the begining byte with the size of bytes_num
     
     void normalize();   // remove extra bytes, leave clean header only
     void interleaved_copy(char* dst, uint size, uint cycle_len, uint samp_len);  // only copy first samp_len bytes in each cycle from this->content to dst
+    void  get_samples(std::vector<float>& samples, const uint begining_byte, const uint bytes_num) const;
+    const float get_samples_avg(const uint begining_byte, const uint bytes_num) const;  // get the avarage value of samples from the begining byte with the size of bytes_num
+    const char* get_clip_name(uint index);      // return "$(filename)_$(index).wav"
+    
     BaseWave& stereo2mono();
     void downsample(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
-    const char* get_clip_name(uint index);      // return "$filename_1.wav"
-    vector<BaseWave*>& slice(const uint max_duration, vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration
-    vector<BaseWave*>& smart_slice(const uint max_duraion, vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were splited
-    BaseWave* new_wave_clip(const uint clip_begining_byte, const uint clip_size, const char* clip_name);
+    std::vector<BaseWave*>& slice(const uint max_duration, std::vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration
+    std::vector<BaseWave*>& smart_slice(const uint max_duraion, std::vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were splited
+    BaseWave* extract(const uint begining_byte, const uint ending_byte) const;
+    BaseWave* extract(const float begining_sec, const float ending_sec) const;
     
     // to catch error caused by platform changed
-    void test_type_size();
-    void test_avg_pack();
+    void test_type_size() const;
+    void test_avg_pack() const;
 };
 
 

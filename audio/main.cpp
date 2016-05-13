@@ -10,6 +10,9 @@
 
 #include "audio.h"
 #include "common.h"
+#include "exceptions.h"
+
+using namespace std;
 
 int main(int argc, const char * argv[]) {
 //    BaseWave wav = BaseWave(1, 16000, 16, 0);
@@ -24,6 +27,7 @@ int main(int argc, const char * argv[]) {
 	}
 	const char* src_file = argv[1];
 	const char* dst_file = argv[2];
+    
 	try{
 		wav.open(src_file);
         wav.test_avg_pack();
@@ -38,10 +42,9 @@ int main(int argc, const char * argv[]) {
 //    mono.normalize();
 //    mono.write();
     
-    if(wav.is_normalized()){
-        return 0;
+    if(!wav.is_normalized()){
+        wav.normalize();
     }
-    wav.output_filename();
     wav.downsample(8000);
 	//wav.write(argv[2]);
 	vector<BaseWave*> wav_vec;
@@ -49,7 +52,6 @@ int main(int argc, const char * argv[]) {
     wav.smart_slice(30*60, wav_vec);		// cause smart_truncate will generate files in the same directory
 	try{
 		for (vector<BaseWave*>::iterator it = wav_vec.begin(); it != wav_vec.end(); it++) {
-            (*it)->normalize(); // remember to normalize header before writting
 			(*it)->write();
 		}
 	}

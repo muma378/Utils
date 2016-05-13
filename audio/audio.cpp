@@ -6,7 +6,17 @@
 //
 //
 
+#include <vector>
+#include <iostream>
+#include <string>
+#include <cmath>
+#include <assert.h>
+
+#include "exceptions.h"
+#include "common.h"
 #include "audio.h"
+
+using namespace std;
 
 const char* BaseWave::RIFF = "RIFF";
 const char* BaseWave::WAVE = "WAVE";
@@ -30,18 +40,29 @@ inline void BaseWave::set_content_ptr(const char *ptr){
     content = ptr;
 }
 
-inline void BaseWave::renew_channels_num(uint channel_num){
-    uint decrease_rate = wave_header.channels / channel_num;
-    wave_header.channels = channel_num;
-    wave_header.byte_rate /= decrease_rate;
-    wave_header.sample_bytes /= decrease_rate;
-    wave_header.tag = 1;
-    wave_header.length = 16;
-    set_data_size(wave_header.data_size/decrease_rate);
-    return;
+inline bool BaseWave::is_normalized() const{
+    return wave_header.length == 16;
+}
+
+inline const char* BaseWave::get_filename() const{
+    return filename;
+}
+
+inline bool BaseWave::is_stereo() const{
+    return wave_header.channels == 2;
 }
 
 BaseWave::BaseWave(const BaseWave& other): wave_header(other.wave_header), content(other.content){
+}
+
+bool BaseWave::is_valid(wave_header_t h) const {
+    if (strncmp((const char*)h.riff_flag, RIFF, 4) ||
+        strncmp((const char*)h.wave_flag, WAVE, 4) ||
+        strncmp((const char*)h.fmt_flag, FMT, 4) ||
+        strncmp((const char*)h.data_flag, DATA, 4)) {
+        return false;
+    }
+    return true;	// return ture if all flags above were correct
 }
 
 void BaseWave::set_filename(const char *new_name){
@@ -87,14 +108,16 @@ void BaseWave::normalize(){
     set_header(wave_header.channels, wave_header.sample_rate, wave_header.sample_width, wave_header.data_size);
 }
 
-bool BaseWave::is_valid(wave_header_t h) const {
-    if (strncmp((const char*)h.riff_flag, RIFF, 4) ||
-        strncmp((const char*)h.wave_flag, WAVE, 4) ||
-        strncmp((const char*)h.fmt_flag, FMT, 4) ||
-        strncmp((const char*)h.data_flag, DATA, 4)) {
-        return false;
-    }
-    return true;	// return ture if all flags above were correct 
+
+void BaseWave::update_channels_num(uint channel_num){
+    uint decrease_rate = wave_header.channels / channel_num;
+    wave_header.channels = channel_num;
+    wave_header.byte_rate /= decrease_rate;
+    wave_header.sample_bytes /= decrease_rate;
+    wave_header.tag = 1;
+    wave_header.length = 16;
+    set_data_size(wave_header.data_size/decrease_rate);
+    return;
 }
 
 
@@ -154,7 +177,6 @@ void BaseWave::write(const char* filename){
         ofs.write(content, wave_header.data_size);
         ofs.close();
     }
-    
 }
 
 const float BaseWave::get_duraion() const{
@@ -166,12 +188,12 @@ const uint BaseWave::get_samples_num() const{
 }
 
 
-const uint BaseWave::time2bytes(const float duration) const{
+const uint BaseWave::sec2byte(const float duration) const{
     return uint(wave_header.byte_rate * duration);
 }
 
 
-const uint BaseWave::time2samples(const float duration) const{
+const uint BaseWave::sec2sample(const float duration) const{
     return uint(wave_header.sample_rate * wave_header.channels * duration);
 }
 
@@ -191,7 +213,6 @@ void BaseWave::get_samples(vector<float>& samples, const uint begining_byte, con
             throw UnreadableException(err_msg);
     }
     return;
-
 }
 
 const float BaseWave::get_samples_avg(const uint begining_byte, const uint bytes_num) const{
@@ -234,7 +255,7 @@ BaseWave& BaseWave::stereo2mono(){
         throw UnreadableException("wav to be converted is not a stereo");
     }
     BaseWave* mono = new BaseWave(*this);
-    mono->renew_channels_num(1);
+    mono->update_channels_num(1);
     char* mono_content = new char[mono->wave_header.data_size];
     interleaved_copy(mono_content, wave_header.data_size, wave_header.sample_bytes, mono->wave_header.sample_bytes);
     mono->content = mono_content;
@@ -280,7 +301,7 @@ const char* BaseWave::get_clip_name(uint index){
 // split wav into clips if its duration was over the max_duration
 vector<BaseWave*>& BaseWave::slice(const uint max_duration, vector<BaseWave*>& clips_vec){
     clips_vec.clear();
-    const uint max_clip_bytes = time2bytes(max_duration);
+    const uint max_clip_bytes = sec2byte(max_duration);
     if (max_clip_bytes > wave_header.data_size) {
         clips_vec.push_back(this);    // no need to truncate, return its self
     }else{
@@ -293,9 +314,10 @@ vector<BaseWave*>& BaseWave::slice(const uint max_duration, vector<BaseWave*>& c
             if (wave_header.data_size < clip_ending_byte) {
                 clip_ending_byte = wave_header.data_size;
             }
-            uint  clip_size = clip_ending_byte - clip_begining_byte;
-			const char* clip_name = get_clip_name(counter++);
-            clips_vec.push_back(new_wave_clip(clip_begining_byte, clip_size, clip_name));
+            const char* clip_name = get_clip_name(counter++);
+            BaseWave* clip = extract(clip_begining_byte, clip_ending_byte);
+            clip->set_filename(clip_name);
+            clips_vec.push_back(clip);
 			delete[] clip_name;
         }
     }
@@ -306,8 +328,8 @@ vector<BaseWave*>& BaseWave::slice(const uint max_duration, vector<BaseWave*>& c
 vector<BaseWave*>& BaseWave::smart_slice(const uint max_duraion, vector<BaseWave*>& clips_vec, float window, float threshold, const float offset){
     clips_vec.clear();
     
-    const uint max_clip_bytes = time2bytes(max_duraion);
-    const uint bytes_in_window = time2bytes(window);
+    const uint max_clip_bytes = sec2byte(max_duraion);
+    const uint bytes_in_window = sec2byte(window);
     
     if (max_clip_bytes > wave_header.data_size) {
         clips_vec.push_back(this);    // no need to truncate, return its self
@@ -331,37 +353,48 @@ vector<BaseWave*>& BaseWave::smart_slice(const uint max_duraion, vector<BaseWave
                         ending_offset = 0;     // start from begining
                     }
                     if (get_samples_avg(window_begining_byte, bytes_in_window) > threshold) {   // if the average value of the window was under the threshold
-                        ending_offset += time2bytes(offset);    // shifting the potential ending
+                        ending_offset += sec2byte(offset);    // shifting the potential ending
                     }else{
                         clip_ending_byte -= ending_offset;  // the ending was found
                         break;
                     }
                 }
             }
-            uint  clip_size = clip_ending_byte - clip_begining_byte;
             const char* clip_name = get_clip_name(counter++);
-            clips_vec.push_back(new_wave_clip(clip_begining_byte, clip_size, clip_name));
+            BaseWave* clip = extract(clip_begining_byte, clip_ending_byte);
+            clip->set_filename(clip_name);
+            clips_vec.push_back(clip);
             delete [] clip_name;
         }
     }
-    
     return clips_vec;
 }
 
 // allocates a new wav with specified length
-BaseWave* BaseWave::new_wave_clip(const uint clip_begining_byte, const uint clip_size, const char* clip_name){
+BaseWave* BaseWave::extract(const uint begining_byte, const uint ending_byte) const {
+    if (ending_byte <= begining_byte) {
+        throw InvalidOperation("ending specified is earlier than the begining");
+    }
+    if (ending_byte > wave_header.data_size || begining_byte > wave_header.data_size) {
+        throw InvalidOperation("positions specified to be truncated is beyond the length");
+    }
+    
+    uint clip_size = ending_byte - begining_byte;
     char* clip_content = new char[clip_size];
-    memcpy(clip_content, content+clip_begining_byte, clip_size);    //copy a slice of content to the clip
+    memcpy(clip_content, content+begining_byte, clip_size);    //copy a slice of content to the clip
     
     BaseWave* clip = new BaseWave(*this);
     clip->set_data_size(clip_size);
     clip->set_content_ptr(clip_content);
-    clip->set_filename(clip_name);
     return clip;
 }
 
+BaseWave* BaseWave::extract(const float begining_sec, const float ending_sec) const {
+    return extract(sec2byte(begining_sec), sec2byte(ending_sec));
+}
+
 // test if the program goes as we thought
-void BaseWave::test_avg_pack(){
+void BaseWave::test_avg_pack() const {
 	const uint start_byte = int(wave_header.data_size) / 3;
     float samples_avg_1 = get_samples_avg(start_byte, 10);
     vector<float> samples_vec;
@@ -374,7 +407,7 @@ void BaseWave::test_avg_pack(){
 }
 
 // test if the operation system was as same as our development environment
-void BaseWave::test_type_size() {
+void BaseWave::test_type_size() const {
     if (sizeof(size8_t) == 1 &&
         sizeof(size16_t) == 2 &&
         sizeof(size32_t) == 4){

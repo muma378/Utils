@@ -9,6 +9,7 @@
 #ifndef ____interpret__
 #define ____interpret__
 
+#include <iostream>
 #include "common.h"
 
 template <class T>
@@ -28,7 +29,7 @@ protected:
     
 public:
     virtual void say(){
-        cout << "base class" << endl;
+        std::cout << "base class" << std::endl;
     }
 };
 
