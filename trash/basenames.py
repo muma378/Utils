@@ -1,7 +1,7 @@
 # basenames.py - usage: python basenames.py root_dir
 # to extract basenames in the text file which under the root dir
 # author: xiaoyang <xiaoyang0117@gmail.com>
-# date: 2015.01.13
+# date: 2016.01.13
 import os
 import sys
 import re
@@ -14,6 +14,7 @@ import re
 PATTERN_BODY = '(?P<name>.+)_(?P<slice>\d+)_(?P<start>[\d.]+)_(?P<end>[\d.]+)\.(?P<format>.+)$'
 SLICE_PATTERN = '_(?P<slice>\d+)'
 
+# the text to match may starts with or without "http://abc.xyz/"
 def guess_pattern(line):
 	if line.startswith('http:'):
 		PATTERN_HEAD = '.*/'
@@ -26,6 +27,7 @@ def guess_pattern(line):
 		return pattern
 	except (AttributeError, AssertionError) as e:
 		return pattern.replace(SLICE_PATTERN, '')
+
 
 def parse_line(line, names):
 	columns = line.split('\t')

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # generate_scenario_xml.py - usage: python generate_scenario_xml.py settings.txt
 # to generate 5 scenario.xml according content in settings.txt
+# works with Intel Realsense SDK and recorder.exe
 # author: xiao yang <xiaoyang0117@gmail.com>
 # date: 2016.Mar.10
 

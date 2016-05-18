@@ -1,4 +1,5 @@
 #!/bin/bash
+# to split a text file into multiple files
 
 FILENAME=$1
 NUM=$2

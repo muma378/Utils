@@ -7,7 +7,6 @@ from traverse import traverse, thread_traverse
 
 CMD_TRUNCATE = 'wav.exe {src} {dst}'
 
-
 class Truncator(threading.Thread):
 	"""truncate wavs in the queue"""
 	def __init__(self, src_queue):
@@ -40,7 +39,6 @@ def main():
 	src_dir = sys.argv[1]
 	dst_dir = sys.argv[2]
 	traverse(src_dir, dst_dir, truncate, '.wav')
-	# thread_traverse(src_dir, dst_dir, Truncator, '.*\.wav')
 
 if __name__ == '__main__':
 	main()

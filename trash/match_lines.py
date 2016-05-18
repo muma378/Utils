@@ -3,8 +3,20 @@ import os
 import sys
 import re
 from sets import Set
+
 import chardet
 
+import emotions
+
+LANGUAGE = emotions.CH
+SEPARATORS = emotions.CH_SEPARATORS
+SPLIT_PARSER = re.compile(SEPARATORS, re.UNICODE)
+
+CENSOR_PARSER = re.compile('http|\d{2,}|:[cLpPD)]\w{2,}|</?\w+>|[/?\w+]|{/?\w+}')
+ILLEGAL_RULES = (
+	lambda x: len(x) < 10 or len(x) > 120,
+	# lambda x: CENSOR_PARSER.search(x),
+	)
 
 HEADER = "-------------------- Extracted Lines For {key} --------------------\n"
 
@@ -54,16 +66,30 @@ def extract_matched(filename, tree, extracted):
 			for line in SPLIT_PARSER.split(paragraph):
 				line = line.strip()
 				i = 0
-				while i < len(line):
-					if tree.get(line[i]):		# the entry
-						try:
-							key = climb(tree, line[i:])
-							extracted.setdefault(key, Set()).add(line.encode('utf-8'))
-							i += len(key) - 1
-						except AstaryException, e:
-							pass
-					i += 1
+				if is_legal(line):
+					while i < len(line):
+						if tree.get(line[i]):		# the entry
+							try:
+								key = climb(tree, line[i:])
+								extracted.setdefault(key, Set()).add(line.encode('utf-8'))
+								i += len(key) - 1
+							except AstaryException, e:
+								pass
+						i += 1
 	return extracted
+
+
+def is_legal(line):
+	for fn in ILLEGAL_RULES:
+		if fn(line):
+			return False
+	try:
+		line.encode('ascii') # could be url only if it was able to be decoded by ascii
+		return False
+	except UnicodeError, e:
+		pass
+
+	return True
 
 
 def write(filename, extracted):
@@ -90,5 +116,4 @@ def main(src_root, str_dict):
 
 
 if __name__ == '__main__':
-	import emotion
-	main(sys.argv[1], emotion.CH)
+	main(sys.argv[1], LANGUAGE)

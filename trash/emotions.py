@@ -1,5 +1,6 @@
 ﻿# -*- coding: utf-8 -*-
 
+
 BASE_SEPARATORS = u", |\. |\? |! |\t|…"
 
 CH = {
