@@ -37,15 +37,6 @@ def eval_wav_duration(wav_path):
 		print("Unable to read %s" % wav_path)
 		return 0
 
-# useless
-# def eval_mp3_duration(mp3_path):
-# 	try:
-# 		body_size = os.stat(mp3_path).st_size - AS['header']
-# 		return estimate(AS['channel'], AS['bitrate'], AS['samplerate'], body_size)
-# 	except Exception, e:
-# 		print("Unable to read %s" % mp3_path)
-# 		return 0
-
 def eval_dir(fn, files_list):
 	pool = ThreadPool(WORKER_NUM)
 	results = pool.map(fn, files_list)

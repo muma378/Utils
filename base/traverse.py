@@ -1,3 +1,8 @@
+# traverse.py
+# providing various functions to traverse a root directory	
+# author: xiao yang <xiaoyang0117@gmail.com>	
+# date: 2016.Mar.01
+
 import os
 import re
 import threading

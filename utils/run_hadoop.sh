@@ -1,4 +1,5 @@
 #!/bin/bash
+#to run hadoop program in one second
 
 if [ $# -lt 3 ];then
     echo "usage: $0 jar-name main.java input [MainJavaClass]"

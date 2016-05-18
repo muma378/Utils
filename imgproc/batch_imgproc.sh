@@ -1,5 +1,6 @@
 #!/bin/sh
 # image_process.sh - usage: ./image_process.sh root_dir
+# work with cvutils usually
 # to call cvutils recursively and build a exactly same directory
 # author: xiaoyang <xiaoyang0117@gmail.com>
 # date: 2016.01.04
