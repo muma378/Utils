@@ -19,6 +19,7 @@
 #define FIXED_HEADER_SIZE 36
 //  intervals between sample_width and data_flag may be filled with '\0'
 #define FLOAT_HEADER_SIZE 8
+#define MAX_PEEK_BYTES  40
 
 
 typedef struct {
@@ -85,7 +86,11 @@ public:
     // append "\0" at the end of the flag so that it could be printed correctly
     static const char* flag_to_str(const size8_t* flag, uint length)  {
         char * cstr = new char [length + 1];
+#ifdef __STDC_LIB_EXT1__
         strcpy_s(cstr, length, (char*)(flag));
+#else
+        strcpy(cstr, (char*)(flag));
+#endif
         cstr[length] = '\0';
         return cstr;
     }
@@ -112,16 +117,7 @@ public:
         return out;
     }
     
-    BaseWave& operator=(const BaseWave& other) {
-        if (this != &other) {
-            set_header(other);
-            delete [] content;      // free the old space if it was allocated before
-            char* data_ptr = new char[wave_header.data_size];
-            std::memcpy(data_ptr, other.content, wave_header.data_size);
-            set_content_ptr(data_ptr);
-        }
-        return *this;
-    };
+    BaseWave& operator=(const BaseWave& other);
     
     void open(const char* filename);    // open a wav file
     void write();
@@ -145,14 +141,11 @@ public:
     
     BaseWave& stereo2mono();
     void downsample(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
-    std::vector<BaseWave*>& slice(const uint max_duration, std::vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration
-    std::vector<BaseWave*>& smart_slice(const uint max_duraion, std::vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were splited
+    std::vector<BaseWave*>& truncate(const uint max_duration, std::vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration
+    std::vector<BaseWave*>& smart_truncate(const uint max_duraion, std::vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were splited
     BaseWave* extract(const uint begining_byte, const uint ending_byte) const;
     BaseWave* extract(const float begining_sec, const float ending_sec) const;
     
-    // to catch error caused by platform changed
-    void test_type_size() const;
-    void test_avg_pack() const;
 };
 
 

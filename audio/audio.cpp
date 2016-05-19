@@ -6,10 +6,13 @@
 //
 //
 
+#define __STDC_WANT_LIB_EXT1__ 1
+
 #include <vector>
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <stdlib.h>
 #include <assert.h>
 
 #include "exceptions.h"
@@ -17,7 +20,6 @@
 #include "audio.h"
 
 using namespace std;
-#define _CRT_SECURE_NO_WARNINGS
 
 const char* BaseWave::RIFF = "RIFF";
 const char* BaseWave::WAVE = "WAVE";
@@ -47,6 +49,17 @@ inline const char* BaseWave::get_filename() const{
 
 BaseWave::BaseWave(const BaseWave& other): wave_header(other.wave_header), content(other.content){
 }
+
+BaseWave& BaseWave::operator=(const BaseWave& other) {
+    if (this != &other) {
+        set_header(other);
+        delete [] content;      // free the old space if it was allocated before
+        char* data_ptr = new char[wave_header.data_size];
+        std::memcpy(data_ptr, other.content, wave_header.data_size);
+        set_content_ptr(data_ptr);
+    }
+    return *this;
+};
 
 bool BaseWave::is_valid(wave_header_t h) const {
     if (strncmp((const char*)h.riff_flag, RIFF, 4) ||
@@ -143,19 +156,21 @@ void BaseWave::seek_dataflag(){
     char next_character = fs.peek();
     char* trash = new char;
     int counter = 0;
-//    cout << "char in trash:" << endl;
+    cout << "char in trash:" << endl;
     while (strncmp(&next_character, DATA, 1)) {
         fs.read(trash, 1);  // thrown to bin
-//        if (*trash){
-//            cout << *trash;
-//        }else{
-//            cout << " ";
-//        }
-//        cout << (short)*trash << " ";
-        counter++;
+        if (*trash){
+            cout << *trash;
+        }else{
+            cout << " ";
+        }
+        cout << (short)*trash << " ";
+        if (counter++ > MAX_PEEK_BYTES){
+            throw UnreadableException("unable to extract size info about data");
+        }
         next_character = fs.peek(); // return the next character but not extracting
     }
-//    cout << "\n" << counter << " bytes in trash" << endl;
+    cout << "\n" << counter << " bytes in trash" << endl;
     delete trash;
     return;
 }
@@ -297,13 +312,17 @@ const char* BaseWave::get_clip_name(uint index){
     filename_str.insert(filename_str.length()-SUFFIX_LENGTH, INDEX_SEP+to_string(index));
 	unsigned long name_length = filename_str.length() + 1;
 	char* clip_name = new char[name_length];
+#ifdef __STDC_LIB_EXT1__
 	strcpy_s(clip_name, name_length, filename_str.c_str());
+#else
+    strcpy(clip_name, filename_str.c_str());
+#endif
     return clip_name;
 }
 
 
 // split wav into clips if its duration was over the max_duration
-vector<BaseWave*>& BaseWave::slice(const uint max_duration, vector<BaseWave*>& clips_vec){
+vector<BaseWave*>& BaseWave::truncate(const uint max_duration, vector<BaseWave*>& clips_vec){
     clips_vec.clear();
     const uint max_clip_bytes = sec2byte(max_duration);
     if (max_clip_bytes > wave_header.data_size) {
@@ -329,7 +348,7 @@ vector<BaseWave*>& BaseWave::slice(const uint max_duration, vector<BaseWave*>& c
 };
 
 // truncate but make sure no voice were to be splited
-vector<BaseWave*>& BaseWave::smart_slice(const uint max_duraion, vector<BaseWave*>& clips_vec, float window, float threshold, const float offset){
+vector<BaseWave*>& BaseWave::smart_truncate(const uint max_duraion, vector<BaseWave*>& clips_vec, float window, float threshold, const float offset){
     clips_vec.clear();
     
     const uint max_clip_bytes = sec2byte(max_duraion);
@@ -377,7 +396,7 @@ vector<BaseWave*>& BaseWave::smart_slice(const uint max_duraion, vector<BaseWave
 // allocates a new wav with specified length
 BaseWave* BaseWave::extract(const uint begining_byte, const uint ending_byte) const {
     if (ending_byte <= begining_byte) {
-        throw InvalidOperation("ending specified is earlier than the begining");
+        throw InvalidOperation("specified ending is earlier than the begining");
     }
     if (ending_byte > wave_header.data_size || begining_byte > wave_header.data_size) {
         throw InvalidOperation("positions specified to be truncated is beyond the length");
@@ -397,30 +416,4 @@ BaseWave* BaseWave::extract(const float begining_sec, const float ending_sec) co
     return extract(sec2byte(begining_sec), sec2byte(ending_sec));
 }
 
-// test if the program goes as we thought
-void BaseWave::test_avg_pack() const {
-	const uint start_byte = int(wave_header.data_size) / 3;
-    float samples_avg_1 = get_samples_avg(start_byte, 10);
-    vector<float> samples_vec;
-    get_samples(samples_vec, start_byte, 10);
-    float samples_avg_2 = 0;
-    for (vector<float>::iterator it=samples_vec.begin();it != samples_vec.end() ; it++) {
-        samples_avg_2 += abs(*it);
-    }
-    assert(samples_avg_1 == samples_avg_2/5);
-}
-
-// test if the operation system was as same as our development environment
-void BaseWave::test_type_size() const {
-    if (sizeof(size8_t) == 1 &&
-        sizeof(size16_t) == 2 &&
-        sizeof(size32_t) == 4){
-        return;
-    }
-    else{
-        cerr << "critical error: types' size of the platform in use are not as same as the macros defined\n"
-        << "please get the source code, alter it and then rebuild." << endl;
-        exit(1);
-    }
-}
 

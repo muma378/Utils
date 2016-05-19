@@ -49,4 +49,12 @@ void intercpy(T* src, T* dst, const uint samp_size, const uint interval){
     }
     return;
 }
+
+// to catch error caused by platform changed
+void validate_typesize();
+
+// to catch error
+void test_avg_pack();
+
+
 #endif

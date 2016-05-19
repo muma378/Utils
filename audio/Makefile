@@ -19,3 +19,6 @@ common.o: common.cpp common.h
 clean:
 	rm -f *.o *.c~ *.h~ *.log $(TARGET)
 
+
+GTEST_DIR = 
+CPPFLAGS += 
