@@ -5,6 +5,7 @@
 //  Created by Xiao Yang on 16/4/8.
 //
 //
+#define _CRT_SECURE_NO_WARNINGS 1
 
 #ifndef ____audio__
 #define ____audio__

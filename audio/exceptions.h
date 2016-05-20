@@ -7,17 +7,25 @@
 
 #ifndef audio_exceptions_h
 #define audio_exceptions_h
+#include <string>
+#include <cstring>
 
 class BaseException: public std::exception
 {
 private:
-    const char* message = nullptr;
+    const char* message = "";
     
 public:
     BaseException(){};
     BaseException(const char* msg){
         this->message = msg;
     }
+	/*BaseException(std::string & msg) {
+		char* c_msg = new char[msg.size() + 1];
+		strncpy(c_msg, msg.c_str(), msg.size());
+		this->message = c_msg;
+		this->message = msg.c_str();
+	}*/
     
     virtual const char* what() const throw()
     {

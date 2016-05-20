@@ -7,6 +7,8 @@
 //
 
 #define __STDC_WANT_LIB_EXT1__ 1
+#define _CRT_SECURE_NO_WARNINGS 1
+
 
 #include <vector>
 #include <iostream>
@@ -156,21 +158,21 @@ void BaseWave::seek_dataflag(){
     char next_character = fs.peek();
     char* trash = new char;
     int counter = 0;
-    cout << "char in trash:" << endl;
+    //cout << "char in trash:" << endl;
     while (strncmp(&next_character, DATA, 1)) {
         fs.read(trash, 1);  // thrown to bin
-        if (*trash){
+		/*if (*trash){
             cout << *trash;
         }else{
             cout << " ";
         }
-        cout << (short)*trash << " ";
+        cout << (short)*trash << " ";*/
         if (counter++ > MAX_PEEK_BYTES){
             throw UnreadableException("unable to extract size info about data");
         }
         next_character = fs.peek(); // return the next character but not extracting
     }
-    cout << "\n" << counter << " bytes in trash" << endl;
+    //cout << "\n" << counter << " bytes in trash" << endl;
     delete trash;
     return;
 }
@@ -240,8 +242,9 @@ const float BaseWave::get_samples_avg(const uint begining_byte, const uint bytes
             return avg_pack((size32_t*)content, bytes_num/4, begining_byte/4);
             
         default:
-            const char* err_msg = ("width of sample detected is not in the range: " + to_string(wave_header.sample_width)).c_str();
-            throw UnreadableException(err_msg);
+			string err_msg("width of sample detected is not in the range: ");
+			err_msg += to_string(wave_header.sample_width);
+            throw UnreadableException(err_msg.c_str());
     }
 }
 
@@ -354,7 +357,7 @@ vector<BaseWave*>& BaseWave::smart_truncate(const uint max_duraion, vector<BaseW
     const uint max_clip_bytes = sec2byte(max_duraion);
     const uint bytes_in_window = sec2byte(window);
     
-    if (max_clip_bytes > wave_header.data_size) {
+    if (max_clip_bytes >= wave_header.data_size) {
         clips_vec.push_back(this);    // no need to truncate, return its self
     }else{
         uint clip_ending_byte = 0;
