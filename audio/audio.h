@@ -106,9 +106,9 @@ public:
         out << "riff flag: " << riff_flag_str << "\t\tfile size: " << w.wave_header.size;
         out << "\nwave flag: " << wave_flag_str << "\t\tfmt flag: " << fmt_flag_str;
         out << "\nfmt length: " << w.wave_header.length << "\t\ttag: " << w.wave_header.tag;
-        out << "\nchannels: " << w.wave_header.channels << "\t\tsample rate: " << w.wave_header.sample_rate;
-        out << "\nbyte rate: " << w.wave_header.byte_rate << "\t\tbytes per frame: " << w.wave_header.sample_bytes;
-        out << "\nbits per sample: " << w.wave_header.sample_width << "\t\tdata flag: " << data_flag_str;
+        out << "\nchannels: " << w.wave_header.channels << "\tsample rate: " << w.wave_header.sample_rate;
+        out << "\nbyte rate: " << w.wave_header.byte_rate << "\tbytes per frame: " << w.wave_header.sample_bytes;
+        out << "\nbits per sample: " << w.wave_header.sample_width << "\tdata flag: " << data_flag_str;
         out << "\ndata size: " << w.wave_header.data_size << std::endl;
         
         delete [] riff_flag_str;
@@ -132,7 +132,7 @@ public:
     const char* get_filename() const;
     void set_filename(const char* new_name);
     const uint get_samples_num() const;
-    const float get_duraion() const;
+    const float get_duration() const;
     
     void normalize();   // remove extra bytes, leave clean header only
     void interleaved_copy(char* dst, uint size, uint cycle_len, uint samp_len);  // only copy first samp_len bytes in each cycle from this->content to dst

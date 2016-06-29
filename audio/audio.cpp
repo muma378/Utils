@@ -45,7 +45,7 @@ inline void BaseWave::set_content_ptr(const char *ptr){
     content = ptr;
 }
 
-inline const char* BaseWave::get_filename() const{
+const char* BaseWave::get_filename() const{
     return filename;
 }
 
