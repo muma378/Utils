@@ -196,7 +196,7 @@ void BaseWave::write(const char* filename){
     }
 }
 
-const float BaseWave::get_duraion() const{
+const float BaseWave::get_duration() const{
     return wave_header.data_size / float(wave_header.byte_rate);
 }
 

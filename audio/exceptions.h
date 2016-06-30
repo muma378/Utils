@@ -10,16 +10,15 @@
 #include <string>
 #include <cstring>
 
-class BaseException: public std::exception
+
+class BaseException
 {
 private:
     const char* message = "";
     
 public:
     BaseException(){};
-    BaseException(const char* msg){
-        this->message = msg;
-    }
+    BaseException(const char* msg);
 	/*BaseException(std::string & msg) {
 		char* c_msg = new char[msg.size() + 1];
 		strncpy(c_msg, msg.c_str(), msg.size());
@@ -27,10 +26,8 @@ public:
 		this->message = msg.c_str();
 	}*/
     
-    virtual const char* what() const throw()
-    {
-        return message;
-    }
+    virtual const char* what() const throw();
+    
 };
 
 
