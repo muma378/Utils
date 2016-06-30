@@ -8,7 +8,26 @@
 #include "exceptions.h"
 %}
 
+
+%include "exception.i"
+%exception {
+    try {
+        $action
+    } catch (const std::exception& e) {
+        SWIG_exception(SWIG_RuntimeError, e.what());
+    }
+}
+
 %include "exceptions.h"
+%catches(UnreadableException) BaseWave::open(const char*);
+%catches(UnwritableException) BaseWave::write();
+%catches(UnreadableException) BaseWave::get_samples(vector<float>&, const uint, const uint);
+%catches(UnreadableException) BaseWave::get_samples_avg(const uint, const uint) const;
+%catches(UnreadableException) BaseWave::interleaved_copy(char*, uint, uint, uint);
+%catches(UnreadableException) BaseWave::stereo2mono();
+%catches(InvalidOperation) BaseWave::extract(const uint, const uint);
+%catches(InvalidOperation) BaseWave::extract(const float, const float);
+
 
 %include "common.h"
 %template(set_flag_chars) set_flag_vals<char>;
@@ -39,4 +58,4 @@ namespace std {
         }
 };
 
-%include "exception.i"
+
