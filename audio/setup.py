@@ -6,9 +6,12 @@ setup.py for audio processing library
 import os
 from distutils.core import setup, Extension
 
+
 audio_module = Extension('_audio', 
-                         sources=['audio_wrap.cpp', 'audio.cpp', 'common.cpp', 'exceptions.cpp'],
-                         extra_compile_args=['-std=c++11', ]
+                         sources=['swig/audio.i', 'src/audio.cpp', 'src/common.cpp', 'src/exceptions.cpp'],
+                         swig_opts=['-c++', '-I./include'],
+                         extra_compile_args=['-std=c++11', ],
+                         include_dirs=['include',],
                          )
 os.environ["CC"] = "g++"
 setup (name = 'audio',
