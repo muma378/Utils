@@ -9,6 +9,7 @@ Audio is a C++ library  to provide easy access on WAV files. It now provides abi
 - Downsampling;
 - Slicing wav into segments in a specified length, (while no voice were to be truncated);
 - Converts stereo to mono;
+- Extracts a segment with given begining and ending.
 
 
 ###Usage
@@ -36,6 +37,31 @@ wav.set_filename("audio.wav");
 wav.write();	// or wav.write("audio.wav");
 ```
 
+###Python Wrapped
+Audio is now wrapped by Python via SWIG. All functions, methods and exceptions are able to be accessed through python calls. 
+Noted before importing the module, it is necessary to generate wrapper files and compile them into dynamical library, which can be achieved by typing:
+```bash
+python setup.py install
+```
+
+It becomes pretty easy to call methods in python, for example:
+```python
+import audio
+w = audio.BaseWave()
+try:
+	w.open('./error.wav')
+except audio.UnreadableException, e:
+	print e.what()
+
+bwv = audio.BaseWaveVec()
+b.smart_truncate(60*30, bwv)
+for slice in bwv:
+	slice.write()
+
+```
+
+
+
 ###Note
 
 In fact, waveform audio file format is quite flexible and unstrunctured (well, in some sense). Extra bytes and information may be contained in the header, which makes it pretty difficult to parse all info. To simplify processing, all extra bytes were **ignored** and the minimum subset of data were collected. Therefore, after processing, ```normalize()``` was ought to be called to generate a clean, suitable header.
@@ -49,6 +75,6 @@ A documentation - [*Multimedia Programming Interface and Data Specifications 1.p
 The library is about to provide more common functions in the future:
 
 1. *voice segment*: split wav into snippets to make each of which contains an unbroken semantic voice;
-1. *extract*: extracts a segment with given begining and ending.
+1. *strip*: remove the begining and ending whose energy was below a threshold;
 
 Happy Writing!
