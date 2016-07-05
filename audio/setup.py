@@ -12,11 +12,14 @@ audio_module = Extension('_audio',
                          swig_opts=['-c++', '-I./include', '-outcurrentdir'],
                          extra_compile_args=['-std=c++11', ],
                          include_dirs=['include',],
+                         language = 'c++',
                          )
-os.environ["CC"] = "g++"
+
+# os.environ["CC"] = "g++"
 setup (name = 'audio',
         version = '1.0',
         author = 'Yang',
+        author_email = "xiaoyang0117@gmail.com",
         description = "provides simple interfaces to process audio",
         ext_modules = [audio_module],
         py_modules = ["audio"],

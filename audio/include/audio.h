@@ -107,7 +107,7 @@ public:
         out << "riff flag: " << riff_flag_str << "\t\tfile size: " << w.wave_header.size;
         out << "\nwave flag: " << wave_flag_str << "\t\tfmt flag: " << fmt_flag_str;
         out << "\nfmt length: " << w.wave_header.length << "\t\ttag: " << w.wave_header.tag;
-        out << "\nchannels: " << w.wave_header.channels << "\tsample rate: " << w.wave_header.sample_rate;
+        out << "\nchannels: " << w.wave_header.channels << "\t\tsample rate: " << w.wave_header.sample_rate;
         out << "\nbyte rate: " << w.wave_header.byte_rate << "\tbytes per frame: " << w.wave_header.sample_bytes;
         out << "\nbits per sample: " << w.wave_header.sample_width << "\tdata flag: " << data_flag_str;
         out << "\ndata size: " << w.wave_header.data_size << std::endl;
@@ -150,6 +150,7 @@ public:
     std::vector<BaseWave*>& smart_truncate(const uint max_duraion, std::vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were to be splited
     BaseWave* extract(const uint begining_byte, const uint ending_byte) const;
     BaseWave* extract(const float begining_sec, const float ending_sec) const;
+    
     
 };
 
