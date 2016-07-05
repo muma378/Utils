@@ -4,7 +4,6 @@
 #include "common.h"
 
 
-
 TEST (WaveTestFixture,  AvgPackTest){
     BaseWave wav;
     wav.open("./data/M1F1-Alaw-AFsp.wav");

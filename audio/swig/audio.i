@@ -48,8 +48,6 @@ namespace std {
 };
 
 %include "audio.h"
-%rename(__eq__) BaseWave::operator=;
-%ignore BaseWave::operator<<;
 %extend BaseWave{
         char* __str__() {
                 std::cout << *$self;
@@ -57,5 +55,7 @@ namespace std {
                 return &end;
         }
 };
+%rename(__eq__) BaseWave::operator=;
+%ignore BaseWave::operator<<;
 
 

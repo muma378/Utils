@@ -20,6 +20,7 @@
 #include "exceptions.h"
 #include "common.h"
 #include "audio.h"
+#include "riff.h"
 
 using namespace std;
 
@@ -64,10 +65,10 @@ BaseWave& BaseWave::operator=(const BaseWave& other) {
 };
 
 bool BaseWave::is_valid(wave_header_t h) const {
-    if (strncmp((const char*)h.riff_flag, RIFF, 4) ||
-        strncmp((const char*)h.wave_flag, WAVE, 4) ||
-        strncmp((const char*)h.fmt_flag, FMT, 4) ||
-        strncmp((const char*)h.data_flag, DATA, 4)) {
+    if (strncmp((const char*)h.riff_flag, RIFF, 4) ||   // RIFF
+        strncmp((const char*)h.wave_flag, WAVE, 4) ||   // WAVE
+        strncmp((const char*)h.fmt_flag, FMT, 4) ||     // fmt\0
+        h.tag == 1) {       // PCM
         return false;
     }
     return true;	// return ture if all flags above were correct
@@ -134,7 +135,7 @@ void BaseWave::update_channels_num(uint channel_num){
 }
 
 
-void BaseWave::open(const char* filename){
+void BaseWave::deprecated_open(const char* filename){
     fs.open(filename, fstream::in | fstream::binary);
     fs.read(header_buffer.buffer, FIXED_HEADER_SIZE);       // read header to the union
     seek_dataflag();
@@ -154,25 +155,78 @@ void BaseWave::open(const char* filename){
     }
 }
 
+
+void BaseWave::open(const char* filename){
+    fs.open(filename, fstream::in | fstream::binary);
+    fs.read(header_buffer.buffer, FIXED_HEADER_SIZE);
+    int offset = header_buffer.header.length - FIXED_HEADER_SIZE
+    if(offset){    // unfinished fmt chunk
+        fs.seekg(offset, fs.cur);   // reach the end of chunk
+    }
+    
+    if (!is_valid(header_buffer.header)) {
+        fs.close();
+        throw UnreadableException("invalid wave format");
+    }
+    
+    chunk_buffer_t chunk_buffer = {
+        {'\0', '\0', '\0', '\0'},
+        0,
+        nullptr,
+        nullptr
+    };
+    
+    seek_dataflag(chunk_buffer);
+    strcpy_s(header_buffer.header.data_flag, CHUNK_HEAD_SIZE, chunk_buffer.chunk.ck_id);
+    header_buffer.header.data_size = chunk_buffer.chunk.ck_size;
+    wave_header = header_buffer.header
+    delete[] content;
+    set_content_ptr(chunk_buffer.chunk.ck_data);
+    set_filename(filename);
+    fs.close()
+    
+}
+
+
+
+void BaseWave::seek_dataflag(chunk_buffer_t& chunk_buffer){
+    chunk_buffer.ck_id = {'\0', '\0', '\0', '\0'}
+    chunk_buffer.ck_size = 0;
+    
+    int remaining = header_buffer.header.size - header_buffer.header.length;
+    while (!strncmp(const char*)chunk_buffer.chunk.ck_id, DATA, 4)) {
+        if (chunk_buffer.chunk.ck_size < 0) {
+            throw UnreadableException("illegal chunk included");
+        }else{
+            // shift the file pointer
+            if (remaining >= chunk_buffer.chunk.ck_size) {
+                fs.seekg(chunk_buffer.chunk.ck_size, fs.cur);
+                remaining -= chunk_buffer.chunk.ck_size;
+            }else{
+                throw UnreadableException("unable to find flag - data");
+            }
+            // read the header in the next chunk
+            fs.read(chunk_buffer.buffer, CHUNK_HEAD_SIZE);
+            remaining -= CHUNK_HEAD_SIZE;
+        }
+    };
+    char* data_ptr = new char[chunk_buffer.chunk.ck_size];
+    fs.read(data_ptr, chunk_buffer.chunk.ck_size);
+    chunk_buffer.chunk.ck_data = data_ptr;
+}
+
+
 void BaseWave::seek_dataflag(){
     char next_character = fs.peek();
     char* trash = new char;
     int counter = 0;
-    //cout << "char in trash:" << endl;
     while (strncmp(&next_character, DATA, 1)) {
         fs.read(trash, 1);  // thrown to bin
-		/*if (*trash){
-            cout << *trash;
-        }else{
-            cout << " ";
-        }
-        cout << (short)*trash << " ";*/
         if (counter++ > MAX_PEEK_BYTES){
             throw UnreadableException("unable to extract size info about data");
         }
         next_character = fs.peek(); // return the next character but not extracting
     }
-    //cout << "\n" << counter << " bytes in trash" << endl;
     delete trash;
     return;
 }
