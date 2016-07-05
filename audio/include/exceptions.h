@@ -19,12 +19,6 @@ private:
 public:
     BaseException(){};
     BaseException(const char* msg);
-	/*BaseException(std::string & msg) {
-		char* c_msg = new char[msg.size() + 1];
-		strncpy(c_msg, msg.c_str(), msg.size());
-		this->message = c_msg;
-		this->message = msg.c_str();
-	}*/
     
     virtual const char* what() const throw();
     

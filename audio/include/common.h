@@ -10,10 +10,15 @@
 
 #include <vector>
 
+
+#define LOG_ERROR(msg) { std::cout << "Error: " << msg << std::endl; }
+#define LOG_WARN(msg) { std::cout << "Warning: " << msg << std::endl; }
+
 typedef char   size8_t;
 typedef short  size16_t;
 typedef int    size32_t;
 typedef unsigned int uint;
+
 
 // set values for flags
 template <typename T>

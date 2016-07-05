@@ -1,0 +1,15 @@
+// BaseWave::open - instead of seeking 'd' in the following bytes, it parses chunks one by one
+
+def open(filename):
+    open filename as f:
+        read 36 bytes from f to wave_header
+        shift wave_header.length - 16 from current file_pos
+        init riff_chunk with 0
+        while riff_chunk.ck_id != 'data':
+            shift riff_chunk.ck_size from current file_pos
+            read 8 bytes from f to riff_chunk
+        char data  = new char[riff_chunk.ck_size];
+        riff_chunk.data = data
+        
+
+

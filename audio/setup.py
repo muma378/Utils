@@ -9,7 +9,7 @@ from distutils.core import setup, Extension
 
 audio_module = Extension('_audio', 
                          sources=['swig/audio.i', 'src/audio.cpp', 'src/common.cpp', 'src/exceptions.cpp'],
-                         swig_opts=['-c++', '-I./include'],
+                         swig_opts=['-c++', '-I./include', '-outcurrentdir'],
                          extra_compile_args=['-std=c++11', ],
                          include_dirs=['include',],
                          )

@@ -6,8 +6,8 @@
 //
 //
 
-#ifndef ____interpret__
-#define ____interpret__
+#ifndef audio_interpret_h
+#define audio_interpret_h
 
 #include <iostream>
 #include "common.h"

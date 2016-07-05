@@ -14,13 +14,17 @@
 #include <iostream>
 #include <vector>
 #include "common.h"
+#include "riff.h"
 
-#define HEADER_SIZE_DEF 44
+#define HEADER_SIZE_DEF     44
 //  parameters from riff_flag to sample_width are fixed
-#define FIXED_HEADER_SIZE 36
-//  intervals between sample_width and data_flag may be filled with '\0'
-#define FLOAT_HEADER_SIZE 8
-#define MAX_PEEK_BYTES  40
+#define FIXED_HEADER_SIZE   36
+#define MINIMUM_FMT_SIZE    16
+
+// the following are deprecaed
+// intervals between sample_width and data_flag may be filled with '\0'
+#define FLOAT_HEADER_SIZE   8
+#define MAX_PEEK_BYTES      40
 
 
 typedef struct {
@@ -37,14 +41,12 @@ typedef struct {
     size16_t  sample_width; // bits used to represent each sample of each channel, note 'sample' indicated here is not as same as 'sample' in sample_bytes, it is not concerning channels
     size8_t   data_flag[4]; // "data"
     size32_t  data_size;    // size of data section
-    
 }wave_header_t;  // header lenght 44 bytes
 
 typedef union {
     wave_header_t   header;
     char            buffer[HEADER_SIZE_DEF];
 }header_buffer_t;
-
 
 class BaseWave {
    
@@ -62,11 +64,10 @@ protected:
     void set_data_size(const uint data_size);
     void set_content_ptr(const char* ptr);
     void update_channels_num(uint channel_num);
-    void seek_dataflag();
+    void seek_dataflag();   // deprecated, underlying error may happen
+    void seek_dataflag(chunk_buffer_t&);
     
-    const uint sec2byte(const float duration) const;    // gets the number of bytes used in the duration
-    const uint sec2sample(const float duration) const;    // gets the number of samples need in the duration
-    
+
 public:
     BaseWave(){};
     BaseWave(const BaseWave& other);
@@ -90,7 +91,7 @@ public:
 #ifdef __STDC_LIB_EXT1__
         strcpy_s(cstr, length, (char*)(flag));
 #else
-        strcpy(cstr, (char*)(flag));
+        strncpy(cstr, (char*)(flag), length);
 #endif
         cstr[length] = '\0';
         return cstr;
@@ -121,12 +122,15 @@ public:
     BaseWave& operator=(const BaseWave& other);
     
     void open(const char* filename);    // open a wav file
+    void deprecated_open(const char* filename);     // open with an nonstandard way
     void write();
-    void write(const char* filename);
+    void write(const char* filename);   
     bool is_stereo() const;
     bool is_normalized() const;
     bool is_valid(wave_header_t header) const;  // to check if all flags were set correctly
     
+    const uint sec2byte(const float duration) const;    // gets the number of bytes used in the duration
+    const uint sec2sample(const float duration) const;    // gets the number of samples need in the duration
     void set_header(const BaseWave& wav);   // copy wav.wave_header to this
     void set_header(const uint channels, const uint sample_rate, const uint sample_width, const uint data_size);
     const char* get_filename() const;
@@ -143,7 +147,7 @@ public:
     BaseWave& stereo2mono();
     void downsample(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
     std::vector<BaseWave*>& truncate(const uint max_duration, std::vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration
-    std::vector<BaseWave*>& smart_truncate(const uint max_duraion, std::vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were splited
+    std::vector<BaseWave*>& smart_truncate(const uint max_duraion, std::vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were to be splited
     BaseWave* extract(const uint begining_byte, const uint ending_byte) const;
     BaseWave* extract(const float begining_sec, const float ending_sec) const;
     

@@ -65,13 +65,14 @@ BaseWave& BaseWave::operator=(const BaseWave& other) {
 };
 
 bool BaseWave::is_valid(wave_header_t h) const {
-    if (strncmp((const char*)h.riff_flag, RIFF, 4) ||   // RIFF
-        strncmp((const char*)h.wave_flag, WAVE, 4) ||   // WAVE
-        strncmp((const char*)h.fmt_flag, FMT, 4) ||     // fmt\0
-        h.tag == 1) {       // PCM
-        return false;
+    if (strncmp((const char*)h.riff_flag, RIFF, 4)==0 &&   // RIFF
+        strncmp((const char*)h.wave_flag, WAVE, 4)==0 &&   // WAVE
+        strncmp((const char*)h.fmt_flag, FMT, 4)==0){     // fmt\0
+        if (h.tag != 1) // PCM
+            LOG_WARN("wave tag is not PCM");
+        return true;    // only process the situation above
     }
-    return true;	// return ture if all flags above were correct
+    return false;
 }
 
 void BaseWave::set_filename(const char *new_name){
@@ -117,7 +118,6 @@ bool BaseWave::is_normalized() const{
     return (wave_header.length == 16);
 }
 
-
 void BaseWave::normalize(){
     set_header(wave_header.channels, wave_header.sample_rate, wave_header.sample_width, wave_header.data_size);
 }
@@ -159,7 +159,8 @@ void BaseWave::deprecated_open(const char* filename){
 void BaseWave::open(const char* filename){
     fs.open(filename, fstream::in | fstream::binary);
     fs.read(header_buffer.buffer, FIXED_HEADER_SIZE);
-    int offset = header_buffer.header.length - FIXED_HEADER_SIZE
+    int offset = header_buffer.header.length - MINIMUM_FMT_SIZE;
+    assert(offset >= 0);
     if(offset){    // unfinished fmt chunk
         fs.seekg(offset, fs.cur);   // reach the end of chunk
     }
@@ -169,32 +170,26 @@ void BaseWave::open(const char* filename){
         throw UnreadableException("invalid wave format");
     }
     
-    chunk_buffer_t chunk_buffer = {
-        {'\0', '\0', '\0', '\0'},
-        0,
-        nullptr,
-        nullptr
-    };
-    
-    seek_dataflag(chunk_buffer);
-    strcpy_s(header_buffer.header.data_flag, CHUNK_HEAD_SIZE, chunk_buffer.chunk.ck_id);
+    chunk_buffer_t chunk_buffer;
+    seek_dataflag(chunk_buffer);    // find the flag 'data' and its content
+    // copy relative info to the 'header' and 'body'
+    strncpy(header_buffer.header.data_flag, chunk_buffer.chunk.ck_id, CHUNK_HEAD_SIZE);
     header_buffer.header.data_size = chunk_buffer.chunk.ck_size;
-    wave_header = header_buffer.header
+    wave_header = header_buffer.header;
     delete[] content;
     set_content_ptr(chunk_buffer.chunk.ck_data);
     set_filename(filename);
-    fs.close()
-    
+    fs.close();
 }
 
 
 
 void BaseWave::seek_dataflag(chunk_buffer_t& chunk_buffer){
-    chunk_buffer.ck_id = {'\0', '\0', '\0', '\0'}
-    chunk_buffer.ck_size = 0;
+    chunk_buffer.chunk.ck_id[0] = '\0';
+    chunk_buffer.chunk.ck_size = 0;
     
     int remaining = header_buffer.header.size - header_buffer.header.length;
-    while (!strncmp(const char*)chunk_buffer.chunk.ck_id, DATA, 4)) {
+    while (strncmp((const char*)chunk_buffer.chunk.ck_id, DATA, 4)!=0){
         if (chunk_buffer.chunk.ck_size < 0) {
             throw UnreadableException("illegal chunk included");
         }else{
