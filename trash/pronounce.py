@@ -48,6 +48,6 @@ def main(words_file, dict_file):
 	write_words(words_file+'.new', words_list)
 
 if __name__ == '__main__':
-	words_file = sys.argv[1]
-	dict_file = sys.argv[2]
+	dict_file = sys.argv[1]
+	words_file = sys.argv[2]
 	main(words_file, dict_file)
