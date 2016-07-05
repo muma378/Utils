@@ -18,6 +18,7 @@ class OperationsBuilder(object):
 
 	def inspect(self, args):
 		log_path = utils.get_log_path(settings.LOG_ERROR_TYPE_NAME, args.target)
+		censor = TextCensor(settings.CENSOR_RULES)
 		with open(log_path, 'w') as fd:
 			for src_file, _ in utils.traverser(args.target, "", settings.LOOKUP_NAMES_PATTERN):
 				intervals = self.tbp.read(src_file).parse_blocks()
