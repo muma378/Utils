@@ -364,11 +364,7 @@ const char* BaseWave::get_clip_name(uint index){
     filename_str.insert(filename_str.length()-SUFFIX_LENGTH, INDEX_SEP+to_string(index));
 	unsigned long name_length = filename_str.length() + 1;
 	char* clip_name = new char[name_length];
-#ifdef __STDC_LIB_EXT1__
-	strcpy_s(clip_name, name_length, filename_str.c_str());
-#else
-    strcpy(clip_name, filename_str.c_str());
-#endif
+    strncpy(clip_name, filename_str.c_str(), name_length);
     return clip_name;
 }
 
