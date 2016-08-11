@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-# extract_dict.py - usage: python extract_dict.py dict_name.txt content.txt
+# sub_dict.py - usage: python sub_dict.py dict_name.txt content.txt
 # extract a subset of dict, which only contains characters in content.txt
 # author: xiao yang <xiaoyang0117@gmail.com>
 # date: 2016.Jul.26
 
 import os
 import sys
-import parse
-import utils
+from common import parse
+from common import utils
 
 
 def read_content(content_file):

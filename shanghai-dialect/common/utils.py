@@ -5,7 +5,7 @@
 
 import re
 
-
+# load a dict with an interpretor to "explain" each line
 def read(filename, interpretor):
 	with open(filename, 'r') as f:
 		for line in f:
@@ -74,7 +74,7 @@ def continual_word_interpretor(line):
 		print "warning: number of items is incorrect - "
 		print line
 
-
+# split characters encoded in utf-8
 def unicode_split(text, coding):
 	unicode_text = text.decode(coding)
 	chars = []
@@ -103,6 +103,8 @@ def segment(line):
 	seg_list = jieba.cut(line, cut_all=False)
 	return filter(lambda x: x.strip(), seg_list)
 
+# output words listed in container (could be set, list, or other iterative objects)
+# and corresponding phonetic in the reference (ought to be a dict) 
 def spell(container, reference, filename):
 	with open(filename, 'w') as f:
 		for item in container:
@@ -113,5 +115,12 @@ def spell(container, reference, filename):
 				print item
 
 
+# sort a dict by words' frequency 
+def rank_by_freq(frequency_dict, filename):
+	freqs = OrderedDict(sorted(frequency_dict.items(), key=lambda x: x[1]))
+	with open(filename + '.feq', 'w') as f:
+		for k, n in freqs.items():
+			f.write(k)
+			f.write('\t'+str(n)+'\n')
 
 	

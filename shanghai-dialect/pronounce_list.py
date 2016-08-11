@@ -5,7 +5,7 @@
 
 import re
 import sys
-import parse
+from common import parse
 
 phonetic_set = set()
 
