@@ -7,21 +7,12 @@
 import os
 import sys
 from collections import OrderedDict
-
+from common.utils import rank_by_freq, unicode_split
 
 CODING = 'utf-8'
 
-def rank_by_freq(frequency_dict):
-	global filename
-	freqs = OrderedDict(sorted(frequency_dict.items(), key=lambda x: x[1]))
-	with open(filename + '.feq', 'w') as f:
-		# import pdb;pdb.set_trace()
-		for k, n in freqs.items():
-			f.write(k)
-			f.write('\t'+str(n)+'\n')
 
-def list_phrase(phrase_list):
-	global filename
+def list_phrase(phrase_list, filename):
 	with open(filename + '.phrase', 'w') as f:
 		for line in phrase_list:
 			f.write(line)
@@ -39,16 +30,8 @@ def statistic(filename):
 	return frequency_dict, phrase_list
 
 
-def unicode_split(text, coding):
-	unicode_text = text.decode(coding)
-	chars = []
-	for char in unicode_text:
-		chars.append(char.encode(coding))
-	return chars
-
-
 if __name__ == '__main__':
 	filename = sys.argv[1]
 	frequency_dict, phrase_list = statistic(filename)
-	rank_by_freq(frequency_dict)
-	list_phrase(phrase_list)
+	rank_by_freq(frequency_dict, filename)
+	list_phrase(phrase_list, filename)

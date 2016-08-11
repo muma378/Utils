@@ -41,7 +41,7 @@ def scan_and_replace(old_word_dict, reference, words_interpretor):
 				w.write('\t'.join(phrase_list) + '\n')
 
 
-
+# used in scan_and_replace
 # case for "上 zaon2\lan2		午 ng\wu1"
 # => {"上":"zaon2\lan2", "午": "ng\wu1"}
 def isolated_words_interpretor(line):
@@ -58,7 +58,7 @@ def isolated_words_interpretor(line):
 		except UnicodeDecodeError, e:
 			word = item
 
-
+# used in scan_and_replace
 # case for "上午	zaon2\lan2 ng\wu1"
 # => {"上":"zaon2\lan2", "午": "ng\wu1"}
 def continual_word_interpretor(line):
