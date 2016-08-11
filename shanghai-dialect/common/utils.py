@@ -4,6 +4,8 @@
 # date: 2016.Jul.26
 
 import re
+from collections import OrderedDict
+
 
 # load a dict with an interpretor to "explain" each line
 def read(filename, interpretor):
@@ -37,6 +39,7 @@ def scan_and_replace(old_word_dict, reference, words_interpretor):
 						phrase_list.append(word)
 						phrase_list.append(reference.get(word, phonetic))
 				w.write('\t'.join(phrase_list) + '\n')
+
 
 
 # case for "上 zaon2\lan2		午 ng\wu1"
@@ -116,11 +119,11 @@ def spell(container, reference, filename):
 
 
 # sort a dict by words' frequency 
-def rank_by_freq(frequency_dict, filename):
-	freqs = OrderedDict(sorted(frequency_dict.items(), key=lambda x: x[1]))
+def rank_by_freq(frequency_dict, filename, coding='utf-8', reverse=False):
+	freqs = OrderedDict(sorted(frequency_dict.items(), key=lambda x: x[1], reverse=reverse))
 	with open(filename + '.feq', 'w') as f:
 		for k, n in freqs.items():
-			f.write(k)
+			f.write(k.encode(coding))
 			f.write('\t'+str(n)+'\n')
 
 	
