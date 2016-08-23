@@ -41,41 +41,6 @@ def scan_and_replace(old_word_dict, reference, words_interpretor):
 				w.write('\t'.join(phrase_list) + '\n')
 
 
-# used in scan_and_replace
-# case for "上 zaon2\lan2		午 ng\wu1"
-# => {"上":"zaon2\lan2", "午": "ng\wu1"}
-def isolated_words_interpretor(line):
-	items = re.split('\t| ', line)
-	word, phonetic = '', ''
-	for item in items:
-		try:
-			if item:
-				# word is impossible to be decode by ascii
-				phonetic = item.decode('ascii')	
-				if word:
-					yield word, phonetic.strip()
-					word, phonetic = '', ''
-		except UnicodeDecodeError, e:
-			word = item
-
-# used in scan_and_replace
-# case for "上午	zaon2\lan2 ng\wu1"
-# => {"上":"zaon2\lan2", "午": "ng\wu1"}
-def continual_word_interpretor(line):
-	items = re.split('\t', line)
-	
-	if len(items) == 2:
-		words = unicode_split(items[0], CODING)
-		phonetic = items[1].split(' ')
-		if len(words) == len(phonetic):
-			for char, phone in zip(words, phonetic):
-				yield char, phone
-		else:
-			print "warning: word and phonetic are not matched - "
-			print line
-	else:
-		print "warning: number of items is incorrect - "
-		print line
 
 # split characters encoded in utf-8
 def unicode_split(text, coding):
@@ -85,6 +50,19 @@ def unicode_split(text, coding):
 		chars.append(char.encode(coding))
 	return chars
 
+def encoded_with(text, coding):
+	try:
+		text.decode('utf-8').encode(coding)
+		return True
+	except UnicodeEncodeError, e:
+		return False
+
+def is_ascii(text):
+	return encoded_with(text, 'ascii')
+
+def is_gb2312(text):
+	return encoded_with(text, 'is_gb2312')
+	
 
 def look_up(word, pronounce_dict):
 	word = word.strip()
@@ -109,13 +87,15 @@ def segment(line):
 # output words listed in container (could be set, list, or other iterative objects)
 # and corresponding phonetic in the reference (ought to be a dict) 
 def spell(container, reference, filename):
+	unreferenced = set()
 	with open(filename, 'w') as f:
 		for item in container:
 			if reference.get(item):
 				f.write(item)
 				f.write('\t'+reference[item]+'\n')
 			else:
-				print item
+				unreferenced.add(item)
+	return unreferenced
 
 
 # sort a dict by words' frequency 
