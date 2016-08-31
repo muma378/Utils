@@ -55,8 +55,14 @@ def eval_wav_duration(wav_path):
 def eval_dir(fn, files_list):
 	# for name in files_list:
 	# 	print name, fn(name)
+	# return reduce(lambda x, y: x+fn(y), files_list, 0)
 
-	return reduce(lambda x, y: x+fn(y), files_list, 0)
+	pool = ThreadPool(WORKER_NUM)
+	results = pool.map(fn, files_list)
+	# close the pool and wait for the work to finish
+	pool.close()
+	pool.join()
+	return sum(results)
 
 
 files_list = []
