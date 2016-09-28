@@ -97,6 +97,12 @@ def spell(container, reference, filename):
 				unreferenced.add(item)
 	return unreferenced
 
+def spell_sentence(sentence, reference):
+	transcription = ""
+	for word in unicode_split(clean(sentence), 'utf-8'):
+		transcription += reference.get(word, "*") + ' '
+	return transcription.strip()
+
 
 # sort a dict by words' frequency 
 def rank_by_freq(frequency_dict, filename, coding='utf-8', reverse=False):
