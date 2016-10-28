@@ -49,7 +49,7 @@ int main(int argc, const char * argv[]) {
 	vector<BaseWave*> wav_vec;
 	wav.set_filename(dst_file);		// alter the filename to renew the place to save
 	try{
-		wav.smart_truncate(30 * 60, wav_vec);		// cause smart_truncate will generate files in the same directory
+		wav.balanced_truncate(5*60, wav_vec, 3*60);		// cause smart_truncate will generate files in the same directory
 	}
 	catch (const UnreadableException& e){
 		cerr << e.what() << endl;

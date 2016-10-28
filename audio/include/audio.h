@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <queue>
 #include "common.h"
 #include "riff.h"
 
@@ -26,6 +27,8 @@
 #define FLOAT_HEADER_SIZE   8
 #define MAX_PEEK_BYTES      40
 
+
+enum Strategy {NORM, SMART, BALANCED};
 
 typedef struct {
     size8_t   riff_flag[4]; // "RIFF"
@@ -66,7 +69,8 @@ protected:
     void update_channels_num(uint channel_num);
     void seek_dataflag();   // deprecated, underlying error may happen
     void seek_dataflag(chunk_buffer_t&);
-    
+    void push_clip(std::vector<BaseWave&> clips_vec, const uint clip_begining_byte, const uint clip_ending_byte);
+
 
 public:
     BaseWave(){};
@@ -140,14 +144,19 @@ public:
     
     void normalize();   // remove extra bytes, leave clean header only
     void interleaved_copy(char* dst, uint size, uint cycle_len, uint samp_len);  // only copy first samp_len bytes in each cycle from this->content to dst
-    void  get_samples(std::vector<float>& samples, const uint begining_byte, const uint bytes_num) const;
+    void get_samples(std::vector<float>& samples, const uint begining_byte, const uint bytes_num) const;
     const float get_samples_avg(const uint begining_byte, const uint bytes_num) const;  // get the avarage value of samples from the begining byte with the size of bytes_num
     const char* get_clip_name(uint index);      // return "$(filename)_$(index).wav"
     
     BaseWave& stereo2mono();
     void downsample(const uint low_samp_rate=8000);     // lowring samples according to the new low_sample_rate
     std::vector<BaseWave*>& truncate(const uint max_duration, std::vector<BaseWave*>& wav_vec);         // split wav into pieces if its duration was over the max_duration
-    std::vector<BaseWave*>& smart_truncate(const uint max_duraion, std::vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);   // truncate but make sure no voice were to be splited
+    // truncate but make sure no voice were to be splited
+    std::vector<BaseWave*>& smart_truncate(const uint max_duration, std::vector<BaseWave*>& wav_vec, float window=0.5, float threshold=200.0, const float offset=0.1);
+    // truncate but try to make each clips' size equals
+    std::vector<BaseWave*>& balanced_truncate(const uint max_duration, std::vector<BaseWave*>& wav_vec, const uint min_duration=0, float window=0.5, float threshold=200.0, const float offset=0.1);
+    std::queue<uint>& equi_divide(std::queue<uint>& kerf, const uint min_duration, const uint max_duration);
+
     BaseWave* extract(const uint begining_byte, const uint ending_byte) const;
     BaseWave* extract(const float begining_sec, const float ending_sec) const;
     

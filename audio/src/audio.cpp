@@ -15,6 +15,7 @@
 #include <string>
 #include <cmath>
 #include <stdlib.h>
+#include <queue>
 #include <assert.h>
 
 #include "exceptions.h"
@@ -368,6 +369,16 @@ const char* BaseWave::get_clip_name(uint index){
     return clip_name;
 }
 
+// push a clip begins with clip_begining_byte and ends with clip_ending_byte to a vector
+// meanwhile, name it with its index in the vector
+void BaseWave::push_clip(vector<BaseWave&> clips_vec, const uint clip_begining_byte, const uint clip_ending_byte){
+    const char* clip_name = get_clip_name(clips_vec.size);  // starts with 0
+    BaseWave* clip = extract(clip_begining_byte, clip_ending_byte);     // copy the content to create a clip
+    clip->set_filename(clip_name);
+    clips_vec.push(clip)
+    delete[] clip_name;
+}
+
 
 // split wav into clips if its duration was over the max_duration
 vector<BaseWave*>& BaseWave::truncate(const uint max_duration, vector<BaseWave*>& clips_vec){
@@ -377,69 +388,179 @@ vector<BaseWave*>& BaseWave::truncate(const uint max_duration, vector<BaseWave*>
         clips_vec.push_back(this);    // no need to truncate, return its self
     }else{
         uint clip_begining_byte = 0;
-        uint clip_ending_byte = 0;
-        uint counter = 0;
+        uint clip_ending_byte = max_clip_bytes;
         while (clip_ending_byte < wave_header.data_size) {      // if the last clip split has not reached the ending of the file
+            push_clip(clips_vec, clip_begining_byte, clip_ending_byte);
             clip_begining_byte = clip_ending_byte;
             clip_ending_byte = clip_begining_byte + max_clip_bytes;
-            if (wave_header.data_size < clip_ending_byte) {
-                clip_ending_byte = wave_header.data_size;
-            }
-            const char* clip_name = get_clip_name(counter++);
-            BaseWave* clip = extract(clip_begining_byte, clip_ending_byte);
-            clip->set_filename(clip_name);
-            clips_vec.push_back(clip);
-			delete[] clip_name;
         }
+        push_clip(clips_vec, clip_begining_byte, wave_header.data_size);
+
     }
     return clips_vec;
 };
 
 // truncate but make sure no voice were to be splited
-vector<BaseWave*>& BaseWave::smart_truncate(const uint max_duraion, vector<BaseWave*>& clips_vec, float window, float threshold, const float offset){
+vector<BaseWave*>& BaseWave::smart_truncate(const uint max_duration, vector<BaseWave*>& clips_vec, const float window, const float threshold, const float offset){
     clips_vec.clear();
     
-    const uint max_clip_bytes = sec2byte(max_duraion);
+    const uint max_clip_bytes = sec2byte(max_duration);
     const uint bytes_in_window = sec2byte(window);
     
     if (max_clip_bytes >= wave_header.data_size) {
         clips_vec.push_back(this);    // no need to truncate, return its self
     }else{
-        uint clip_ending_byte = 0;
         uint clip_begining_byte = 0;
-        uint counter = 0;
+        uint clip_ending_byte = max_clip_bytes;
         while (clip_ending_byte < wave_header.data_size) {      // if the last clip split has not reached the ending of the file
-            clip_begining_byte = clip_ending_byte;
             
-            clip_ending_byte = clip_begining_byte + max_clip_bytes;
-            if (wave_header.data_size < clip_ending_byte) {
-                clip_ending_byte = wave_header.data_size;
-            }else{
-                // lookin for the ending with no voice inside
-                uint ending_offset = 0;
-                while (true) {
-                    uint window_begining_byte = clip_ending_byte - bytes_in_window - ending_offset;
-                    if (window_begining_byte <= clip_begining_byte) {  // failed to find an avaible ending with this threshold
-                        threshold = threshold * 2;  // loosen the threshold
-                        ending_offset = 0;     // start from begining
-                    }
-                    if (get_samples_avg(window_begining_byte, bytes_in_window) > threshold) {   // if the average value of the window was under the threshold
-                        ending_offset += sec2byte(offset);    // shifting the potential ending
-                    }else{
-                        clip_ending_byte -= ending_offset;  // the ending was found
-                        break;
-                    }
+            // lookin for the ending with no voice included
+            uint ending_offset = 0;
+            float tuned_threshold = threshold;
+            while (true) {
+                uint window_begining_byte = clip_ending_byte - bytes_in_window - ending_offset;
+                if (window_begining_byte <= clip_begining_byte) {  // failed to find an avaible ending with this threshold
+                    tuned_threshold *= 2;  // loosen the threshold
+                    ending_offset = 0;     // start from begining
+                }
+                
+                /* evaluates the energy in a period and executes truncation if the period was thought to be a mute */
+                if (get_samples_avg(window_begining_byte, bytes_in_window) > tuned_threshold) {   // if the average value of the window was under the threshold
+                    ending_offset += sec2byte(offset);    // shifting the potential ending
+                }else{
+                    clip_ending_byte -= ending_offset;  // the ending was found
+                    break;
                 }
             }
-            const char* clip_name = get_clip_name(counter++);
-            BaseWave* clip = extract(clip_begining_byte, clip_ending_byte);
-            clip->set_filename(clip_name);
-            clips_vec.push_back(clip);
-            delete [] clip_name;
+
+            push_clip(clips_vec, clip_begining_byte, clip_ending_byte);
+            
+            clip_begining_byte = clip_ending_byte;
+            clip_ending_byte = clip_begining_byte + max_clip_bytes;
         }
+        push_clip(clips_vec, clip_begining_byte, wave_header.data_size);
     }
     return clips_vec;
 }
+
+
+vector<BaseWave*>& BaseWave::balanced_truncate(const uint max_duration, std::vector<BaseWave*>& clips_vec, const uint min_duration, const float window, const float threshold, const float offset){
+    clips_vec.clear();
+    
+    const uint max_clip_bytes = sec2byte(max_duration);
+    const uint min_clip_bytes = sec2byte(min_duration);
+    const uint bytes_in_window = sec2byte(window);
+    
+    if (max_clip_bytes >= wave_header.data_size) {
+        clips_vec.push_back(this);
+    }else{
+        queue<uint> breakpoints;
+        equi_divide(breakpoints, min_duration, max_duration);
+        uint clip_begining_byte = 0;
+        uint clip_ending_byte = breakpoints.front();
+        breakpoints.pop();
+        
+        float l_threshold = threshold;
+        float r_threshold = threshold;
+        
+        while (!breakpoints.empty()) {
+            /* shift related to window begining */
+            int left_offset = -bytes_in_window;     // = window_begining_byte for left side
+            int right_offset = 0;   //  = window_begining_byte for right side
+            while (true) {
+                if (get_samples_avg(clip_ending_byte + left_offset, bytes_in_window) < l_threshold) {
+                    clip_ending_byte += left_offset + bytes_in_window;
+                    break;
+                }
+                // not only look left, but also look right to find a proper breakpoint
+                if (get_samples_avg(clip_ending_byte + right_offset, bytes_in_window) < r_threshold) {
+                    clip_ending_byte += right_offset + bytes_in_window;
+                    break;
+                }
+                
+                // shift the offset
+                left_offset -= sec2byte(offset);
+                right_offset += sec2byte(offset);
+                
+                // loose the threshold if no avaible breakpoint was found
+                if (clip_ending_byte + left_offset + bytes_in_window < clip_begining_byte + min_clip_bytes){      // new clip_ending shall not be under the minimum duration
+                    l_threshold *= 2;
+                    left_offset = -bytes_in_window;
+                }
+                if (clip_ending_byte + right_offset + bytes_in_window > clip_begining_byte +  max_clip_bytes ) {  // neither shall new clip_ending over the maximum duration
+                    r_threshold *= 2;
+                    right_offset = 0;
+                }
+            }
+            
+            push_clip(clips_vec, clip_begining_byte, clip_ending_byte);
+            clip_begining_byte = clip_ending_byte;
+            
+            // TODO: what if the last clip was less than the minimum duration?
+            do{
+                if (breakpoints.empty()) {
+                    break;
+                }
+                clip_ending_byte = breakpoints.front();
+                breakpoints.pop();
+            }while (clip_ending_byte < clip_begining_byte + min_clip_bytes);
+            
+            assert(clip_ending_byte > clip_begining_byte + min_clip_bytes);
+            assert(clip_ending_byte < clip_begining_byte + max_clip_bytes);
+            assert(clip_begining_byte < clip_ending_byte);
+        }
+        push_clip(clips_vec, clip_begining_byte, clip_ending_byte);
+    }
+    return clips_vec;
+}
+
+/*
+ * find an available length to satisfy the requirement for duration
+ * meanwhile to make the wave was splited with same size
+ */
+queue<uint>& BaseWave::equi_divide(queue<uint>& breakpoints, const uint min_duration, const uint max_duration){
+    const float duration = get_duration();
+    float avg_length = (max_duration + min_duration) / 2.0;
+    
+    float segment_num = duration / avg_length;
+    uint length = 0;
+
+    if (segment_num != int(segment_num)) {
+        float ceiling_len = duration / (int(segment_num)-1);
+        float floor_len = duration / (int(segment_num)+1);
+        if (ceiling_len > max_duration ) {
+            ceiling_len = max_duration;
+        }
+        if (floor_len < min_duration) {
+            floor_len = min_duration;
+        }
+        /* choose the one with less error to avg_length */
+        if ( avg_length-floor_len < ceiling_len-avg_length ){
+            length = sec2byte(uint(floor_len));
+        }else{
+            length = sec2byte(uint(ceiling_len));
+        }
+        
+    }else{
+        length = sec2byte(uint(avg_length));
+    }
+    
+    uint breakpoint = length;
+    while (breakpoint < wave_header.data_size) {
+        breakpoints.push(breakpoint);
+        breakpoint += length;
+    }
+    breakpoints.push(wave_header.data_size);
+    return breakpoints;
+}
+
+/*
+ * get all segments filled with voice or silent
+ */
+vector<uint>& BaseWave::watershed(vector<uint>& segments, const uint start, const uint end, const float threshold, const float window, const float step, const bool flip){
+    
+}
+
 
 // allocates a new wav with specified length
 BaseWave* BaseWave::extract(const uint begining_byte, const uint ending_byte) const {
@@ -447,7 +568,7 @@ BaseWave* BaseWave::extract(const uint begining_byte, const uint ending_byte) co
         throw InvalidOperation("specified ending is earlier than the begining");
     }
     if (ending_byte > wave_header.data_size || begining_byte > wave_header.data_size) {
-        throw InvalidOperation("positions specified to be truncated is beyond the length");
+        throw InvalidOperation("positions specified to be truncated exceeds the length");
     }
     
     uint clip_size = ending_byte - begining_byte;
