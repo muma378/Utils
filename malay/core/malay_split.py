@@ -4,8 +4,8 @@ import re
 import sys
 import subprocess
 import distance
-from parse_blocks import TextgridBlocksParser
-from temp_truncate import split_layers
+from textgrid.parse_blocks import TextgridBlocksParser
+from textgrid.temp_truncate import split_layers
 
 DST_DIR_NAME = 'Astro'
 CMD_TEMPLATE = ('cut.exe' if sys.platform=='win32' else './cut') + ' "{src_file}" "{dst_file}" {start} {end}'
